@@ -528,10 +528,14 @@ function fk(n){const a=Math.abs(n);if(a>=1e6)return(n/1e6).toFixed(1)+'M';if(a>=
 const hh=h=>String(h).padStart(2,'0')+':00';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
-function save(){if(wiping)return;try{localStorage.setItem(SKEY,JSON.stringify({S,G}))}catch(e){}}
+let UPD=0,lastB='';
+/* UPD = when this game last really changed (used to sync with the account) */
+function save(){if(wiping)return;const b=JSON.stringify({S,G});
+ if(b!==lastB&&!(SY&&SY.pulling)){UPD=Date.now();lastB=b;cloudSoon()}
+ try{localStorage.setItem(SKEY,'{"upd":'+UPD+','+b.slice(1))}catch(e){}}
 function fillG(){const keep=G;const b=newGame();G=keep;for(const k in b)if(G[k]===undefined)G[k]=b[k];if(!G.cool)G.cool={pizza:-9,bonus:-99};if(!G.news)G.news=[];if(!G.name)G.name=S.name||'MEL1'}
-function load(){try{const j=JSON.parse(localStorage.getItem(SKEY)||'null');if(!j)return;S=Object.assign(DEFS(),j.S||{});
- if(j.G&&!j.G.over){const keep=j.G;newGame();const b=G;G=keep;for(const k in b)if(G[k]===undefined)G[k]=b[k];fillG()}}catch(e){G=null}}
+function load(){try{const j=JSON.parse(localStorage.getItem(SKEY)||'null');if(!j)return;S=Object.assign(DEFS(),j.S||{});UPD=+j.upd||0;
+ if(j.G&&!j.G.over){const keep=j.G;newGame();const b=G;G=keep;for(const k in b)if(G[k]===undefined)G[k]=b[k];fillG()}lastB=JSON.stringify({S,G})}catch(e){G=null}}
 
 /* ---------- feedback ---------- */
 const hapEl=$('hap');
@@ -953,13 +957,240 @@ function openDept(d){haptic();sfx('tap');openSheet(()=>'<div class="sh-t">'+DI[d
  pick:'Walks the aisles and picks each order into a tote. Orders waiting here for more than 24 hours ship late; after 72 hours they cancel.',
  pack:'Boxes up picked items. Totes pile up on the conveyor if packing is too slow.',ship:'Sorts parcels onto trucks. Anything packed but not shipped still counts as waiting.'})[d]+'</div></div>')}
 
+/* ================= SAVE ADAPTER (used by the cloud module) ================= */
+const CG={id:'fct',title:'FC Tycoon',pre:'FCT1',every:30000,
+ head:t=>'<div class="sh-t">'+t+'</div>',
+ ok:o=>'G' in o,
+ has:o=>!!(o&&((o.G&&!o.G.over&&(o.G.day>0||o.G.hour>8))||(o.S&&o.S.best>0))),
+ sum:o=>{const g=o&&o.G;return g&&!g.over?'<b>'+esc(g.name||'Your FC')+'</b> · day '+(g.day+1)+' · '+fm(g.cash)+' cash':'No site open'+(o&&o.S&&o.S.best?' · best run '+o.S.best+' days':'')}};
+
+/* ================= ACCOUNT + CLOUD SAVE + BACKUP CODE ================= */
+/* Same Firebase project as IT Support Quest, so one email login works in every game.
+   Cloud save lives at saves/{uid}/games/{CG.id} = {data, upd, sum, email}. */
+const FIREBASE_CONFIG={apiKey:"AIzaSyDxHJGy_o7ioG0c9M6grNKgq93fLMgjjYo",authDomain:"it-quest-c9782.firebaseapp.com",projectId:"it-quest-c9782",storageBucket:"it-quest-c9782.firebasestorage.app",messagingSenderId:"372524365725",appId:"1:372524365725:web:c67f12d22061ed96c42174"};
+const FB_BASE=window.__FB_BASE||'https://www.gstatic.com/firebasejs/10.12.2/';
+const SYNC_KEY=CG.id+'.sync';
+var SY={user:null,ready:false,state:'off',msg:'',t:0,conflict:null,pulling:false,lastPull:0,at:0,empty:false,code:'',codeAt:0};
+var FB=null,FBP=null;
+document.head.insertAdjacentHTML('beforeend','<style>'+
+ '.acrow{display:flex;gap:10px;margin-top:12px}.acrow>.btn{flex:1;margin-top:0!important;font-size:15.5px}'+
+ '.acsub{font-size:14px;color:var(--t2);line-height:1.4}.acbox{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-top:10px;font-size:14.5px;line-height:1.45}'+
+ '.acbox small{display:block;color:var(--t3);font-size:12.5px;margin-top:2px}.aclbl{font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:3px}'+
+ '.acmsg{min-height:20px;font-size:13.5px;color:var(--red);margin:8px 2px 0;line-height:1.35}.acmsg.ok{color:var(--t2)}'+
+ '.acin{font-size:16px!important;letter-spacing:0!important;font-weight:600!important;margin-top:10px}'+
+ '.accode{width:100%;height:96px;border-radius:15px;background:rgba(255,255,255,.07);border:1px solid var(--line);padding:10px 12px;color:var(--t1);font:12px/1.35 ui-monospace,Menlo,monospace;resize:none;outline:none;word-break:break-all;margin-top:10px}'+
+ '.acp{font-size:14px;color:var(--t2);line-height:1.45;margin-top:4px}'+
+ '</style>');
+
+function syncMeta(){try{return JSON.parse(localStorage.getItem(SYNC_KEY)||'{}')||{}}catch(e){return{}}}
+function setMeta(at){try{localStorage.setItem(SYNC_KEY,JSON.stringify({uid:SY.user.uid,at}))}catch(e){}}
+function fbLoad(){
+ if(FBP)return FBP;
+ FBP=Promise.all(['app','auth','firestore'].map(n=>import(FB_BASE+'firebase-'+n+'.js'))).then(([a,au,fs])=>{
+  const app=a.initializeApp(FIREBASE_CONFIG);
+  FB={au,fs,auth:au.getAuth(app),db:fs.getFirestore(app)};
+  return new Promise(res=>{let first=true;au.onAuthStateChanged(FB.auth,u=>{SY.user=u;SY.ready=true;if(first){first=false;res(FB)}cloudUser(u)})});
+ }).catch(e=>{FBP=null;throw e});
+ return FBP;
+}
+function errText(e){
+ const c=(e&&e.code)||'',m=(e&&e.message)||'';
+ const T={'auth/invalid-credential':'Email or password is wrong.','auth/invalid-login-credentials':'Email or password is wrong.','auth/wrong-password':'Email or password is wrong.','auth/user-not-found':'No account with that email. Tap Create account.',
+  'auth/email-already-in-use':'That email already has an account. Tap Sign in instead.','auth/weak-password':'Password needs at least 6 characters.','auth/invalid-email':'That email address does not look right.',
+  'auth/network-request-failed':'No internet connection. Try again when you are online.','unavailable':'No internet connection. Your game is safe on this phone.','auth/too-many-requests':'Too many tries. Wait a few minutes and try again.',
+  'auth/operation-not-allowed':'Email sign-in is not switched on in Firebase.','auth/unauthorized-domain':'This website is not on the Firebase authorized domains list.',
+  'permission-denied':'The cloud refused the save. The Firestore rules need the saves block.','auth/missing-email':'Enter your email address first.'};
+ if(T[c])return T[c];
+ if(/dynamically imported module|Failed to fetch|Importing a module|NetworkError|Load failed/i.test(m))return 'Could not reach the sign-in service. Check your connection.';
+ return 'Something went wrong ('+(c||m||'unknown')+').';
+}
+function syncText(){
+ const T={off:'Not syncing',loading:'Checking your account...',pending:'Saving soon...',saving:'Saving...',offline:'Offline. Saved on this phone, syncs when you are back online',conflict:'Choose which game to keep',
+  ok:'Synced'+(SY.at?' at '+new Date(SY.at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):''),err:'Not synced: '+(SY.msg||'error')};
+ return T[SY.state]||'';
+}
+function acctLine(){
+ if(SY.conflict)return 'Your account and this phone both have a game. Choose one.';
+ if(!SY.user)return syncMeta().uid&&!SY.ready?'Connecting...':'Saved on this phone only. Sign in to keep it safe online and play on any device.';
+ return esc(SY.user.email||'Signed in')+' · '+syncText();
+}
+const saveWhere=()=>SY.user?'saves to this phone and your account':'saves on this phone';
+function setSync(st,msg){const ch=st!==SY.state||msg!==SY.msg;SY.state=st;SY.msg=msg||'';if(st==='ok')SY.at=Date.now();
+ const a=$('acSub');if(a)a.innerHTML=acctLine();const b=$('acStat');if(b)b.textContent=syncText();if(ch&&st!=='pending'&&st!=='saving')acRefresh()}
+function cloudSoon(){if(!SY||!SY.user||!FB||SY.conflict||SY.t)return;SY.t=setTimeout(cloudPush,CG.every||15000);if(SY.state==='ok')setSync('pending')}
+async function cloudPush(){
+ if(!SY.user||!FB||SY.conflict)return;
+ save();if(!UPD){lastB='';save()}clearTimeout(SY.t);SY.t=0;
+ const at=UPD,data=lastB,uid=SY.user.uid;
+ setSync(navigator.onLine===false?'offline':'saving');
+ try{
+  await FB.fs.setDoc(FB.fs.doc(FB.db,'saves',uid,'games',CG.id),{data,upd:at,sum:sumPlain(JSON.parse(data)),email:SY.user.email||''});
+  if(SY.user&&SY.user.uid===uid){setMeta(at);SY.empty=false;if(!SY.t)setSync('ok')}
+ }catch(e){setSync(navigator.onLine===false||(e&&e.code==='unavailable')?'offline':'err',errText(e))}
+}
+const sumPlain=o=>{try{return CG.sum(o).replace(/<[^>]*>/g,'').slice(0,120)}catch(e){return''}};
+/* swap this phone's save for another one, then restart the page so every screen starts clean */
+function useSave(o,upd,msg){
+ const body=JSON.stringify(Object.assign({},o,{upd}));
+ try{localStorage.setItem(SKEY,body);sessionStorage.setItem(CG.id+'.toast',msg)}catch(e){toast('Could not save on this phone (storage full?)','bad');return false}
+ wiping=true;setTimeout(()=>location.reload(),60);return true;
+}
+function cloudTake(d){
+ let o=null;try{o=JSON.parse(d.data)}catch(e){}
+ if(!o||!CG.ok(o)){setSync('err','account save looks damaged');return}
+ setMeta(d.upd||0);SY.conflict=null;useSave(o,d.upd||0,'Game loaded from your account');
+}
+async function cloudPull(){
+ if(!SY.user||!FB||SY.pulling)return;SY.pulling=true;SY.lastPull=Date.now();setSync('loading');
+ try{
+  const uid=SY.user.uid,snap=await FB.fs.getDoc(FB.fs.doc(FB.db,'saves',uid,'games',CG.id));
+  if(!SY.user||SY.user.uid!==uid)return;
+  save();const loc=UPD,m=syncMeta(),same=m.uid===uid,local=JSON.parse(lastB||'null');
+  if(!snap.exists()){SY.pulling=false;if(CG.has(local))await cloudPush();else{SY.empty=true;setMeta(loc);setSync('ok')}return}
+  const d=snap.data(),cu=d.upd||0;let cp=null;try{cp=JSON.parse(d.data)}catch(e){}
+  SY.empty=false;
+  if(cu===loc){setMeta(cu);setSync('ok')}
+  else if(same&&m.at===loc)cloudTake(d);                    /* only the account changed */
+  else if(same&&m.at===cu){SY.pulling=false;await cloudPush()} /* only this phone changed */
+  else if(!CG.has(local))cloudTake(d);
+  else if(!CG.has(cp)){SY.pulling=false;await cloudPush()}
+  else{SY.conflict={d,cp,lp:local};setSync('conflict');conflictModal()}
+ }catch(e){setSync(navigator.onLine===false||(e&&e.code==='unavailable')?'offline':'err',errText(e))}
+ finally{SY.pulling=false}
+}
+function cloudUser(u){if(u)cloudPull();else{SY.conflict=null;SY.empty=false;setSync('off')}acRefresh();refreshSettings()}
+function refreshSettings(){const a=$('acSub');if(!a)return;const c=a.closest('.card');if(c)c.outerHTML=cloudCard()}
+function cloudBoot(){
+ addEventListener('online',()=>{if(SY.user&&!SY.conflict&&(SY.t||SY.state==='offline'||SY.state==='err'))cloudPush()});
+ document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){if(SY.t)cloudPush()}
+  else if(SY.user&&!SY.conflict&&Date.now()-SY.lastPull>30000&&!SY.t)cloudPull();
+ });
+ addEventListener('pagehide',()=>{if(SY.t)cloudPush()});
+ let msg='';try{msg=sessionStorage.getItem(CG.id+'.toast')||'';sessionStorage.removeItem(CG.id+'.toast')}catch(e){}
+ if(msg)setTimeout(()=>toast(msg,'good'),500);
+ const known=[SYNC_KEY,'l2quest_sync','fct.sync','lsim.sync'].some(k=>{try{return JSON.parse(localStorage.getItem(k)||'{}').uid}catch(e){return false}});
+ if(known)fbLoad().catch(e=>setSync('offline',errText(e)));
+}
+function conflictModal(){if(!SY.conflict)return;const c=SY.conflict;
+ modal('<div class="big">☁️</div><h2>Two saved games</h2><p>Your account and this phone both have a game. Which one do you want to keep? The other one is replaced.</p>'+
+  '<div class="acbox" style="text-align:left"><div class="aclbl">On your account</div>'+CG.sum(c.cp)+'<small>Saved '+when(c.d.upd)+'</small></div>'+
+  '<div class="acbox" style="text-align:left;margin-bottom:14px"><div class="aclbl">On this phone</div>'+CG.sum(c.lp)+'<small>Saved '+when(UPD)+'</small></div>'+
+  '<button class="btn" id="cfC">Keep account game</button><button class="btn ghost" id="cfL">Keep this phone\'s game</button>',
+  m=>{m.querySelector('#cfC').onclick=()=>{closeModal();cloudTake(c.d)};
+   m.querySelector('#cfL').onclick=()=>{closeModal();SY.conflict=null;cloudPush().then(()=>{if(SY.state==='ok')toast('Account updated with this phone\'s game','good')})}})}
+const when=t=>t?new Date(t).toLocaleString([],{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):'a while ago';
+
+/* ---------- settings card ---------- */
+function cloudCard(){return '<div class="card"><h3>Account and backup<span>'+(SY.user?'Signed in':'')+'</span></h3><div class="acsub" id="acSub">'+acctLine()+'</div>'+
+ '<div class="acrow"><button class="btn ghost" data-act="acct">'+(SY.user?'Account':'Sign in')+'</button><button class="btn ghost" data-act="backup">Backup code</button></div></div>'}
+
+/* ---------- account sheet ---------- */
+let acFrom='';
+const _closeSheet=closeSheet;
+closeSheet=function(){_closeSheet();const o=$('ob');if(o)o.style.visibility=''};
+$('scrim').onclick=()=>closeSheet();
+function sheetUp(r,from){acFrom=from||acFrom;const o=$('ob');if(o)o.style.visibility='hidden';openSheet(r)}
+A.acct=el=>sheetUp(acctR,el&&el.dataset.from||(sheetR===acctR||sheetR===bkR?acFrom:'set'));
+A.acBack=()=>{if(acFrom==='ob')closeSheet();else A.settings()};
+function acctR(){
+ let h=CG.head('Account');
+ if(SY.user&&SY.conflict){
+  h+='<div class="card"><p class="acp">Your account and this phone both have a game. Choose which one to keep.</p><button class="btn" data-act="acConf" style="margin-top:12px">Choose</button></div>';
+ }else if(SY.user){
+  h+='<div class="card"><div class="aclbl">Signed in as</div><b style="font-size:16px;word-break:break-all">'+esc(SY.user.email||'')+'</b><div class="acsub" id="acStat" style="margin-top:4px">'+syncText()+'</div>'+
+   (SY.empty?'<p class="acp" style="margin-top:8px">Your account has no '+CG.title+' game yet. Start one and it saves to your account by itself.</p>':'')+
+   '<p class="acp" style="margin-top:8px">Your game saves to your account while you play. Sign in with the same email on another phone or computer to carry on there.</p>'+
+   '<div class="acrow"><button class="btn ghost" data-act="acSync">Sync now</button><button class="btn danger" data-act="acOut">Sign out</button></div></div>';
+ }else if(!SY.ready&&FBP){
+  h+='<div class="card"><p class="acp">Connecting...</p></div>';
+ }else{
+  h+='<div class="card"><p class="acp">Sign in to keep your game safe online and play it on any device. Already have an IT Support Quest account? Use the same email and password.</p>'+
+   '<input class="inp acin" id="acEmail" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="Email">'+
+   '<input class="inp acin" id="acPass" type="password" autocomplete="current-password" placeholder="Password (6 or more characters)">'+
+   '<div class="acmsg" id="acMsg"></div>'+
+   '<div class="acrow"><button class="btn" data-act="acIn">Sign in</button><button class="btn ghost" data-act="acUp">Create account</button></div>'+
+   '<button class="btn ghost" data-act="acForgot" style="margin-top:10px">Forgot password?</button></div>';
+ }
+ h+='<button class="btn ghost" data-act="backup">Backup code instead</button>';
+ if(acFrom!=='ob')h+='<button class="btn ghost" data-act="acBack">Back to settings</button>';
+ if(!FBP)setTimeout(()=>fbLoad().then(()=>acRefresh()).catch(e=>{const m=$('acMsg');if(m)m.textContent=errText(e)}),0);
+ return h;
+}
+/* the game redraws open sheets now and then; keep typed text safe and leave the backup sheet alone */
+acctR.static=true;
+const _refreshSheet=refreshSheet;
+refreshSheet=function(){if(sheetR===acctR)return acRefresh();if(sheetR===bkR)return;_refreshSheet()};
+function acRefresh(){if(sheetR!==acctR||!$('shB'))return;const e=$('acEmail'),p=$('acPass'),m=$('acMsg');const ev=e&&e.value,pv=p&&p.value,mv=m&&m.textContent,mc=m&&m.className;
+ _refreshSheet();const e2=$('acEmail'),p2=$('acPass'),m2=$('acMsg');if(e2&&ev)e2.value=ev;if(p2&&pv)p2.value=pv;if(m2&&mv){m2.textContent=mv;m2.className=mc}}
+A.acIn=()=>acDo('in');A.acUp=()=>acDo('up');A.acForgot=()=>acDo('reset');
+A.acConf=()=>conflictModal();
+A.acSync=()=>{haptic();if(SY.t)cloudPush();else cloudPull()};
+A.acOut=async()=>{haptic();if(SY.t)await cloudPush();try{localStorage.removeItem(SYNC_KEY)}catch(e){}await FB.au.signOut(FB.auth);toast('Signed out. Your game stays on this phone.')};
+async function acDo(kind){
+ const em=$('acEmail').value.trim(),pw=$('acPass').value,msg=$('acMsg'),btns=$('shB').querySelectorAll('.btn');
+ msg.className='acmsg';msg.textContent='';
+ if(!/^\S+@\S+\.\S+$/.test(em)){msg.textContent='Enter your email address.';return}
+ if(kind!=='reset'&&pw.length<6){msg.textContent='Password needs at least 6 characters.';return}
+ btns.forEach(b=>b.disabled=true);msg.className='acmsg ok';msg.textContent=kind==='reset'?'Sending...':'Please wait...';haptic();
+ try{
+  await fbLoad();
+  if(kind==='reset'){await FB.au.sendPasswordResetEmail(FB.auth,em);msg.textContent='Reset email sent. Check your inbox and spam folder.';btns.forEach(b=>b.disabled=false);return}
+  if(kind==='up')await FB.au.createUserWithEmailAndPassword(FB.auth,em,pw);else await FB.au.signInWithEmailAndPassword(FB.auth,em,pw);
+  toast(kind==='up'?'Account created':'Signed in','good');acRefresh();
+ }catch(e){const m2=$('acMsg');if(m2){m2.className='acmsg';m2.textContent=errText(e)}$('shB')&&$('shB').querySelectorAll('.btn').forEach(b=>b.disabled=false)}
+}
+
+/* ---------- backup code ---------- */
+function b64(u){let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
+function unb64(t){const s=atob(t),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u}
+const zip=(u,C)=>new Response(new Blob([u]).stream().pipeThrough(new C('gzip'))).arrayBuffer().then(b=>new Uint8Array(b));
+async function packCode(){save();const u=new TextEncoder().encode('{"upd":'+UPD+','+lastB.slice(1));let z=null;
+ if(window.CompressionStream)try{z=await zip(u,CompressionStream)}catch(e){}
+ return CG.pre+'.'+(z?'z':'j')+'.'+b64(z||u)}
+async function unpackCode(t){t=String(t||'').replace(/\s+/g,'');const m=t.match(/^([A-Z]{2,5}1)\.([zj])\.([A-Za-z0-9+/=]+)$/);
+ if(!m)return{err:'That does not look like a backup code. It should start with '+CG.pre+'.'};
+ if(m[1]!==CG.pre)return{err:'That code is for a different game. '+CG.title+' codes start with '+CG.pre+'.'};
+ try{let u=unb64(m[3]);if(m[2]==='z'){if(!window.DecompressionStream)return{err:'This browser is too old to open that code. Update iOS and try again.'};u=await zip(u,DecompressionStream)}
+  const o=JSON.parse(new TextDecoder().decode(u));if(!o||typeof o!=='object'||!o.S||!CG.ok(o))throw 0;return{o}}
+ catch(e){return{err:'That code is incomplete or damaged. Copy the whole code and try again.'}}}
+A.backup=el=>{SY.code='';sheetUp(bkR,el&&el.dataset.from||(sheetR===acctR?acFrom:'set'));packCode().then(c=>{SY.code=c;SY.codeAt=Date.now();const t=$('acCode');if(t){t.value=c;$('bkSize').textContent='About '+Math.max(1,Math.round(c.length/1024))+' KB'}
+ const b=$('bkCopy');if(b)b.disabled=false;const s=$('bkShare');if(s)s.disabled=false})};
+bkR.static=true;
+function bkR(){const has=CG.has(JSON.parse(lastB||'null'));
+ return CG.head('Backup code')+
+ (has?'<div class="card"><h3>Save this game<span id="bkSize"></span></h3><p class="acp">Copy this code and keep it somewhere safe, like Notes or an email to yourself. Paste it back here on any phone to get this game back.</p>'+
+  '<textarea class="accode" id="acCode" readonly placeholder="Making your code..."></textarea>'+
+  '<div class="acrow"><button class="btn" data-act="bkCopy" id="bkCopy" disabled>Copy code</button>'+(navigator.share?'<button class="btn ghost" data-act="bkShare" id="bkShare" disabled>Share</button>':'')+'</div></div>':
+  '<div class="card"><p class="acp">There is no game on this phone to back up yet.</p></div>')+
+ '<div class="card"><h3>Restore a game</h3><p class="acp">Paste your '+CG.title+' backup code (it starts with '+CG.pre+'.).'+(has?' This replaces the game on this phone.':'')+'</p>'+
+  '<textarea class="accode" id="acPaste" placeholder="Paste your code here" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea><div class="acmsg" id="bkMsg"></div>'+
+  '<button class="btn ghost" data-act="bkRestore" style="margin-top:6px">Restore</button></div>'+
+ '<button class="btn ghost" data-act="acct">'+(SY.user?'Account':'Sign in instead')+'</button>'+
+ (acFrom!=='ob'?'<button class="btn ghost" data-act="acBack">Back to settings</button>':'')}
+A.bkCopy=()=>{const c=SY.code;if(!c)return;haptic();const ok=()=>{toast('Backup code copied','good');sfx('good')};
+ const fall=()=>{const t=$('acCode');if(!t)return;t.removeAttribute('readonly');t.focus();t.select();t.setSelectionRange(0,c.length);let done=false;try{done=document.execCommand('copy')}catch(e){}t.setAttribute('readonly','');
+  if(done)ok();else toast('Press and hold the code, then Select All and Copy')};
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(c).then(ok,fall);else fall()};
+A.bkShare=()=>{if(!SY.code)return;haptic();navigator.share({title:CG.title+' backup',text:SY.code}).catch(()=>{})};
+A.bkRestore=async el=>{const t=$('acPaste'),m=$('bkMsg');if(!t||!m)return;m.className='acmsg';m.textContent='';
+ if(!t.value.trim()){m.textContent='Paste your backup code first.';return}
+ el.disabled=true;const r=await unpackCode(t.value);el.disabled=false;
+ if(r.err){m.textContent=r.err;sfx('bad');return}
+ const go=()=>{if(useSave(r.o,Date.now(),'Game restored from your backup code'))m.className='acmsg ok',m.textContent='Restoring...'};
+ if(!CG.has(JSON.parse(lastB||'null')))return go();
+ modal('<div class="big">♻️</div><h2>Replace this game?</h2><p>The game on this phone will be swapped for the one in the code.</p><div class="acbox" style="text-align:left;margin-bottom:14px"><div class="aclbl">In the code</div>'+CG.sum(r.o)+'</div>'+
+  '<button class="btn" id="rsY">Yes, restore it</button><button class="btn ghost" id="rsN">Cancel</button>',
+  mm=>{mm.querySelector('#rsY').onclick=()=>{closeModal();go()};mm.querySelector('#rsN').onclick=closeModal})};
+
 /* ================= SETTINGS ================= */
 A.settings=()=>{if(!G)return;openSheet(Object.assign(()=>'<div class="sh-t">Settings</div>'+
  '<div class="card"><h3>Site name</h3><input class="inp" id="nmI" maxlength="10" value="'+esc(G.name)+'" autocomplete="off" autocapitalize="characters"></div>'+
  '<div class="card">'+[['sound','Sound effects','Clicks, cash and alerts'],['haptics','Haptics','Taps on supported iPhones'],['ffClosed','Fast-forward closed hours','Skip quickly through the night when the floor is shut'],['pauseDay','Pause after each day','Stop the clock at midnight to review the day']]
   .map(r=>'<div class="set"><div><b>'+r[1]+'</b><small>'+r[2]+'</small></div><button class="tgl '+(S[r[0]]?'on':'')+'" data-act="tg" data-k="'+r[0]+'"></button></div>').join('')+'</div>'+
+ cloudCard()+
  '<button class="btn ghost" data-act="tut">How to play</button><button class="btn danger" data-act="restart">Start a new FC</button>'+
- '<div style="text-align:center;font-size:12px;color:var(--t3);margin-top:16px">FC Tycoon v1.0 · saves on this device</div>',{static:true}));
+ '<div style="text-align:center;font-size:12px;color:var(--t3);margin-top:16px">FC Tycoon v1.1 · '+saveWhere()+'</div>',{static:true}));
  const i=$('nmI');i.oninput=()=>{G.name=(i.value.trim()||'MEL1').toUpperCase().slice(0,10);S.name=G.name;hud();save()}};
 A.tg=el=>{const k=el.dataset.k;S[k]=!S[k];el.classList.toggle('on',S[k]);haptic();save()};
 A.tut=()=>{closeSheet();setTimeout(tutorial,300)};
@@ -1000,7 +1231,7 @@ function onboard(){if($('ob'))return;const w=document.createElement('div');w.id=
  w.innerHTML='<img class="logo" src="icon-192.png" alt=""><h1>FC <span class="grad">Tycoon</span></h1><p>Run your own fulfilment centre. Hire a team, buy robots and survive peak season without the building melting down.</p>'+
  '<label for="obN">Name your site</label><input class="inp" id="obN" maxlength="10" value="'+esc(nm)+'" autocomplete="off" autocapitalize="characters">'+
  '<div class="chips">'+['MEL1','AVV4','SYD8','BWU2','PER2','BNE1'].map(c=>'<button class="chip '+(c===nm?'on':'')+'" data-c="'+c+'">'+c+'</button>').join('')+'</div>'+
- '<button class="btn" id="obGo">Open the doors</button>';
+ '<button class="btn" id="obGo">Open the doors</button><button class="btn ghost" data-act="acct" data-from="ob">I already have a game</button>';
  document.body.appendChild(w);const inp=w.querySelector('#obN');
  w.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{inp.value=c.dataset.c;w.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));haptic();sfx('tap')});
  w.querySelector('#obGo').onclick=()=>{const n=(inp.value.trim()||'MEL1').toUpperCase().slice(0,10);S.name=n;newGame();fillG();G.name=n;G.news=[];
@@ -1012,7 +1243,7 @@ const TUT=[
  ['👷','People and robots','Hire associates (they train for 2 days), add temps from October to December, and buy machines to boost each area. Machines still need people to run them.'],
  ['📅','Watch the calendar','Peak runs from mid November to Christmas. Black Friday brings 4× the orders and Prime Day hits in July. Hire before the rush, not during it.'],
  ['😊','Look after your team','Low morale means slower work, more quits and more injuries. Pay, breaks, shifts and extra time all change how people feel.'],
- ['⏩','You are in charge','Use pause, 1×, 2× and 4× at the top. Tap any area of the floor to manage it. The game saves itself on this phone.']];
+ ['⏩','You are in charge','Use pause, 1×, 2× and 4× at the top. Tap any area of the floor to manage it. The game saves itself on this phone. Sign in from Settings to keep it safe online.']];
 function tutorial(){let i=0;const prev=speed;setSpeed(0);
  const draw=m=>{const t=TUT[i];m.innerHTML='<div class="big">'+t[0]+'</div><div class="dots">'+TUT.map((x,j)=>'<i class="'+(j===i?'on':'')+'"></i>').join('')+'</div><h2>'+t[1]+'</h2><p>'+t[2]+'</p>'+
   '<button class="btn" id="tN">'+(i===TUT.length-1?'Start the clock':'Next')+'</button>'+(i?'<button class="btn ghost" id="tB">Back</button>':'<button class="btn ghost" id="tS">Skip</button>');
@@ -1027,6 +1258,7 @@ load();setSpeed(0);
 requestAnimationFrame(t=>{lastT=t;requestAnimationFrame(loop)});
 if(G){hud();R.floor();setSpeed(S.speed||1)}else onboard();
 addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+cloudBoot();
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 </script>
