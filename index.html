@@ -1,0 +1,1034 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FC Tycoon">
+<meta name="theme-color" content="#07090d">
+<title>FC Tycoon</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--a1:#ffc15e;--a2:#ff8a00;--ar:255,153,0;--bg:#07090d;--card:rgba(255,255,255,.05);--card2:rgba(255,255,255,.09);--line:rgba(255,255,255,.08);
+--t1:#fff;--t2:rgba(255,255,255,.64);--t3:rgba(255,255,255,.4);--red:#ff453a;--green:#30d158;--blue:#0a84ff;--teal:#2dd4bf;--yel:#ffd60a;
+--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--tab:64px;--top:96px;
+--font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--font);overflow:hidden;overscroll-behavior:none}
+body{-webkit-font-smoothing:antialiased;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+input{-webkit-user-select:text;user-select:text;font:inherit;font-size:16px;color:var(--t1)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.num,b,.st b{font-variant-numeric:tabular-nums}
+.grad{background:linear-gradient(135deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.g{color:var(--green)}.r{color:var(--red)}.o{color:var(--a1)}.mut{color:var(--t3)}.t2{color:var(--t2)}
+
+#bg{position:fixed;inset:0;overflow:hidden;z-index:0;pointer-events:none}
+#bg i{position:absolute;border-radius:50%;filter:blur(80px);opacity:.16;animation:drift 26s ease-in-out infinite alternate}
+#bg i:nth-child(1){width:360px;height:360px;background:var(--a2);top:-140px;left:-120px}
+#bg i:nth-child(2){width:300px;height:300px;background:#1e6bff;top:42%;right:-170px;opacity:.12;animation-duration:32s}
+@keyframes drift{to{transform:translate(50px,70px) scale(1.12)}}
+
+/* top HUD */
+#top{position:fixed;left:0;right:0;top:0;z-index:6;padding:calc(var(--st) + 8px) 14px 10px;background:rgba(9,11,16,.78);
+ backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);border-bottom:1px solid var(--line)}
+.t1{display:flex;align-items:center;justify-content:space-between;gap:10px;height:34px}
+#fcBtn{display:flex;flex-direction:column;align-items:flex-start;min-width:0;text-align:left}
+#fcBtn b{font-size:17px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:5px;white-space:nowrap}
+#fcBtn b svg{width:13px;height:13px;opacity:.5}
+#clock{font-size:12.5px;color:var(--t2);font-weight:600;white-space:nowrap}
+.spd{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:2px;flex:none}
+.spd button{width:40px;height:30px;border-radius:10px;font-size:13px;font-weight:800;color:var(--t2);display:grid;place-items:center;transition:all .2s}
+.spd button svg{width:14px;height:14px}
+.spd button.on{background:linear-gradient(135deg,var(--a1),var(--a2));color:#111}
+.t2r{display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;gap:6px;margin-top:8px}
+.st{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:5px 8px;min-width:0}
+.st i{display:block;font-style:normal;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3)}
+.st b{display:block;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .3s}
+.st b.flash{animation:fl .6s}
+@keyframes fl{30%{transform:scale(1.08)}}
+
+/* pages */
+#app{position:fixed;inset:0;z-index:1}
+.page{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(var(--st) + var(--top) + 12px) 14px calc(var(--tab) + var(--sb) + 30px);
+ opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .25s ease,transform .35s cubic-bezier(.2,.8,.2,1)}
+.page.on{opacity:1;pointer-events:auto;transform:none}
+.page::-webkit-scrollbar{display:none}
+.hdr{display:flex;align-items:flex-end;justify-content:space-between;margin:4px 2px 14px;gap:12px}
+.hdr h1{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.hdr .s{font-size:13.5px;color:var(--t2);margin-top:3px}
+.ibtn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--card2);flex:none;transition:transform .15s}
+.ibtn:active{transform:scale(.9)}
+.ibtn svg{width:19px;height:19px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px;margin-bottom:12px;position:relative;overflow:hidden;
+ backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.card h3{font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--t3);margin-bottom:11px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h3 span{text-transform:none;letter-spacing:0;font-weight:600;font-size:13px;color:var(--t2)}
+.lux{background:linear-gradient(160deg,rgba(var(--ar),.15),rgba(255,255,255,.03) 50%,rgba(255,255,255,.04));border-color:rgba(var(--ar),.22)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:15px;font-weight:800;font-size:16.5px;width:100%;
+ background:linear-gradient(135deg,var(--a1),var(--a2));color:#111;transition:transform .15s,opacity .2s;box-shadow:0 10px 28px -12px rgba(var(--ar),.6)}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:var(--card2);color:var(--t1);box-shadow:none}
+.btn.danger{background:rgba(255,69,58,.15);color:var(--red);box-shadow:none}
+.btn:disabled{opacity:.38}
+.btn+.btn{margin-top:10px}
+.mb{height:34px;min-width:44px;padding:0 10px;border-radius:11px;background:var(--card2);font-size:14px;font-weight:800;transition:transform .12s,opacity .2s;white-space:nowrap}
+.mb:active{transform:scale(.92)}
+.mb.p{background:linear-gradient(135deg,var(--a1),var(--a2));color:#111}
+.mb.t{background:rgba(45,212,191,.16);color:var(--teal)}
+.mb.d{background:rgba(255,69,58,.14);color:#ff7b73}
+.mb:disabled{opacity:.3}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:3px}
+.seg button{flex:1;min-height:36px;border-radius:10px;font-size:13px;font-weight:700;color:var(--t2);transition:all .2s;line-height:1.15;padding:3px 2px}
+.seg button small{display:block;font-size:10.5px;font-weight:600;opacity:.7}
+.seg button.on{background:var(--card2);color:var(--t1);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.bar{height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:linear-gradient(90deg,var(--a2),var(--a1));transition:width .5s}
+.bar i.gr{background:linear-gradient(90deg,#1f9d4a,var(--green))}
+.bar i.rd{background:linear-gradient(90deg,#c0281f,var(--red))}
+.bar i.tl{background:linear-gradient(90deg,#0f8f80,var(--teal))}
+.kv{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px;gap:10px}
+.kv:first-of-type{border-top:0}
+.kv span{color:var(--t2)}
+.kv b{font-weight:700;text-align:right}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:11.5px;font-weight:800;background:var(--card2);color:var(--t2);white-space:nowrap}
+.pill.o{background:rgba(var(--ar),.16);color:var(--a1)}
+.pill.r{background:rgba(255,69,58,.16);color:#ff7b73}
+.pill.g{background:rgba(48,209,88,.15);color:var(--green)}
+.pill.t{background:rgba(45,212,191,.15);color:var(--teal)}
+.tgl{width:51px;height:31px;border-radius:16px;background:rgba(255,255,255,.16);position:relative;flex:none;transition:background .25s}
+.tgl:after{content:"";position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;transition:transform .25s cubic-bezier(.3,1.4,.5,1);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.tgl.on{background:var(--green)}
+.tgl.on:after{transform:translateX(20px)}
+.set{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.set:first-of-type{border-top:0}
+.set div b{display:block;font-size:15.5px;font-weight:700}
+.set div small{display:block;font-size:12.5px;color:var(--t3);margin-top:2px;line-height:1.35}
+
+/* floor */
+#season{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:10px 14px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+#season.hot{background:linear-gradient(120deg,rgba(255,69,58,.22),rgba(var(--ar),.14));border-color:rgba(255,120,60,.35)}
+#season.warm{background:linear-gradient(120deg,rgba(var(--ar),.16),rgba(255,255,255,.03));border-color:rgba(var(--ar),.25)}
+#season.cool{background:linear-gradient(120deg,rgba(10,132,255,.16),rgba(255,255,255,.03));border-color:rgba(10,132,255,.25)}
+#season .ic{font-size:24px}
+#season b{display:block;font-size:15px;font-weight:800}
+#season small{display:block;font-size:12.5px;color:var(--t2);margin-top:1px}
+#season .mx{margin-left:auto;font-size:20px;font-weight:900}
+.cvw{border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:#0d1016;position:relative;box-shadow:0 20px 40px -20px rgba(0,0,0,.9)}
+#cv{display:block;width:100%}
+.legend{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;font-size:11.5px;color:var(--t3);margin:9px 0 12px;font-weight:600}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.pl{display:grid;grid-template-columns:30px 1fr auto;gap:4px 10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.pl:first-of-type{border-top:0;padding-top:2px}
+.pl .e{font-size:20px;grid-row:span 2;text-align:center}
+.pl b{font-size:14.5px;font-weight:700}
+.pl .v{font-size:12.5px;color:var(--t2);text-align:right;white-space:nowrap}
+.pl .bar{grid-column:2/4}
+.pl .q{grid-column:2/4;font-size:12px;color:var(--t3);margin-top:1px}
+.tip{display:flex;gap:11px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);font-size:14px;line-height:1.4;color:var(--t2)}
+.tip:first-of-type{border-top:0;padding-top:0}
+.tip em{font-style:normal;font-size:18px;line-height:1.1}
+.tip b{color:var(--t1)}
+.news{font-size:13px;line-height:1.4;color:var(--t2);padding:7px 0;border-top:1px solid var(--line);display:flex;gap:10px}
+.news:first-of-type{border-top:0;padding-top:0}
+.news time{color:var(--t3);font-size:11.5px;font-weight:700;flex:none;width:58px;padding-top:1px}
+.news.bad{color:#ffa29c}.news.good{color:#8fe3a9}
+.g4{display:grid;grid-template-columns:1fr 1fr;gap:10px}.g4>.btn{margin-top:0}
+.mini{background:rgba(255,255,255,.04);border-radius:14px;padding:10px 12px}
+.mini i{display:block;font-style:normal;font-size:11px;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.mini b{font-size:19px;font-weight:800;display:block;margin-top:2px}
+
+/* team / build */
+.dc .top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.dc .top .e{width:44px;height:44px;border-radius:14px;background:var(--card2);display:grid;place-items:center;font-size:23px;flex:none}
+.dc .top b{font-size:18px;font-weight:800;display:block}
+.dc .top small{font-size:12.5px;color:var(--t2)}
+.dc .top .pill{margin-left:auto}
+.hr{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line)}
+.hr .l{flex:1;min-width:0}
+.hr .l b{font-size:15px;font-weight:700;display:block}
+.hr .l small{font-size:12px;color:var(--t3);display:block;margin-top:1px}
+.need{margin-top:6px;font-size:12.5px;color:var(--t2);display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}
+.wg{display:flex;align-items:center;gap:10px}
+.wg b{font-size:22px;font-weight:800;min-width:74px;text-align:center}
+.up{display:flex;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.up:first-of-type{border-top:0;padding-top:2px}
+.up .e{width:42px;height:42px;border-radius:13px;background:var(--card2);display:grid;place-items:center;font-size:21px;flex:none}
+.up .l{flex:1;min-width:0}
+.up .l b{display:block;font-size:15px;font-weight:700}
+.up .l small{display:block;font-size:12.5px;color:var(--t3);margin-top:2px;line-height:1.35}
+.up.own .e{background:rgba(48,209,88,.14)}
+.lvl{display:flex;gap:6px;margin:12px 0}
+.lvl i{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.1)}
+.lvl i.on{background:linear-gradient(90deg,var(--a2),var(--a1))}
+
+/* charts */
+.ch{width:100%;height:140px;display:block}
+.lg{display:flex;gap:12px;font-size:11.5px;color:var(--t3);font-weight:700;margin-top:6px}
+.lg i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:3px}
+
+/* goals */
+.gl{display:flex;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.gl:first-of-type{border-top:0;padding-top:2px}
+.gl .e{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:19px;background:var(--card2);flex:none}
+.gl.done .e{background:rgba(var(--ar),.2);box-shadow:0 0 0 2px rgba(var(--ar),.5);animation:pulse 1.6s infinite}
+.gl.cl .e{background:rgba(48,209,88,.15)}
+.gl.cl .l b{color:var(--t2)}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(var(--ar),.12)}}
+.gl .l{flex:1;min-width:0}
+.gl .l b{display:block;font-size:14.5px;font-weight:700;line-height:1.3}
+.gl .l small{display:block;font-size:12.5px;color:var(--t3);margin-top:3px}
+.gl .bar{margin-top:6px;height:5px}
+.cal{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.cal:first-of-type{border-top:0;padding-top:0}
+.cal .d{width:46px;text-align:center;flex:none;background:var(--card2);border-radius:12px;padding:5px 0}
+.cal .d b{display:block;font-size:17px;font-weight:800;line-height:1.1}
+.cal .d small{font-size:10.5px;color:var(--t3);font-weight:700;text-transform:uppercase}
+.cal .l{flex:1}
+.cal .l b{font-size:14.5px;display:block}
+.cal .l small{font-size:12.5px;color:var(--t3)}
+.badge{position:absolute;top:7px;left:calc(50% + 7px);min-width:17px;height:17px;border-radius:9px;background:var(--red);color:#fff;font-size:10.5px;font-weight:800;display:grid;place-items:center;padding:0 4px}
+
+/* tabs */
+#tabs{position:fixed;left:12px;right:12px;bottom:calc(var(--sb) + 8px);height:var(--tab);z-index:5;display:flex;border-radius:24px;
+ background:rgba(18,20,26,.78);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(28px) saturate(1.8);-webkit-backdrop-filter:blur(28px) saturate(1.8);box-shadow:0 20px 40px -12px rgba(0,0,0,.8)}
+#tabs button{flex:1;display:grid;justify-items:center;align-content:center;gap:4px;font-size:10.5px;font-weight:700;color:var(--t3);transition:color .2s;position:relative}
+#tabs svg{width:24px;height:24px;transition:transform .25s}
+#tabs button.on{color:var(--a1)}
+#tabs button.on svg{transform:translateY(-1px) scale(1.08)}
+
+/* sheet, modal, toast */
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10;opacity:0;pointer-events:none;transition:opacity .3s}
+#scrim.on{opacity:1;pointer-events:auto}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;max-height:90%;overflow-y:auto;border-radius:28px 28px 0 0;background:#12141a;
+ border-top:1px solid rgba(255,255,255,.1);padding:6px 18px calc(var(--sb) + 22px);transform:translateY(105%);transition:transform .42s cubic-bezier(.2,.9,.2,1)}
+#sheet.on{transform:none}
+#sheet.drag{transition:none}
+#sheet::-webkit-scrollbar{display:none}
+#sheet .card{background:rgba(255,255,255,.04)}
+.grab{height:26px;display:grid;place-items:center;margin:0 -18px}
+.grab:before{content:"";width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.22)}
+.sh-t{font-size:22px;font-weight:800;margin:2px 0 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+#modal{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+ opacity:0;pointer-events:none;transition:opacity .25s}
+#modal.on{opacity:1;pointer-events:auto}
+.mc{width:100%;max-width:370px;max-height:86vh;overflow-y:auto;background:#14161c;border:1px solid rgba(255,255,255,.1);border-radius:28px;padding:24px 20px 20px;text-align:center;
+ transform:scale(.92) translateY(10px);transition:transform .35s cubic-bezier(.2,1.3,.4,1);box-shadow:0 30px 80px -20px rgba(0,0,0,.9)}
+#modal.on .mc{transform:none}
+.mc .big{font-size:52px;line-height:1;margin-bottom:12px}
+.mc h2{font-size:22px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px}
+.mc p{font-size:15px;color:var(--t2);line-height:1.45;margin-bottom:18px}
+.mc .kv{text-align:left}
+.mc .btn{margin-top:10px}
+.dots{display:flex;gap:6px;justify-content:center;margin:4px 0 14px}
+.dots i{width:7px;height:7px;border-radius:4px;background:rgba(255,255,255,.18);transition:all .3s}
+.dots i.on{width:20px;background:var(--a1)}
+.flow{display:flex;align-items:center;justify-content:center;gap:4px;margin:4px 0 16px;font-size:12px;font-weight:700;color:var(--t2)}
+.flow span{background:var(--card2);border-radius:10px;padding:7px 6px;display:grid;gap:2px;justify-items:center}
+.flow span em{font-style:normal;font-size:20px}
+#toast{position:fixed;left:50%;bottom:calc(var(--sb) + var(--tab) + 18px);transform:translate(-50%,60px);opacity:0;pointer-events:none;z-index:15;background:rgba(32,34,40,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+ border:1px solid rgba(255,255,255,.12);padding:11px 14px;border-radius:16px;font-size:14px;font-weight:600;display:flex;gap:12px;align-items:center;transition:transform .4s cubic-bezier(.2,1.2,.3,1),opacity .25s;width:max-content;max-width:92%;line-height:1.35}
+#toast.on{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+#toast.bad{border-color:rgba(255,69,58,.45);background:rgba(52,24,24,.95)}
+#toast.good{border-color:rgba(48,209,88,.4);background:rgba(20,44,28,.95)}
+#toast button{color:var(--a1);font-weight:800;flex:none}
+#dayBan{position:fixed;left:12px;right:12px;top:calc(var(--st) + var(--top) + 8px);z-index:7;border-radius:18px;padding:11px 14px;background:rgba(24,27,34,.95);
+ border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transform:translateY(-30px);opacity:0;pointer-events:none;transition:all .4s cubic-bezier(.2,1.1,.3,1);box-shadow:0 16px 30px -10px rgba(0,0,0,.8)}
+#dayBan.on{transform:none;opacity:1;pointer-events:auto}
+#dayBan .h{display:flex;justify-content:space-between;font-size:12px;font-weight:800;color:var(--t3);text-transform:uppercase;letter-spacing:.06em}
+#dayBan .b{display:flex;gap:14px;margin-top:5px;font-size:14px;font-weight:700}
+#dayBan .b span{color:var(--t3);font-weight:600;font-size:11.5px;display:block}
+#fxc{position:fixed;inset:0;z-index:35;pointer-events:none}
+#hap{position:fixed;left:-200px;top:0;opacity:0;pointer-events:none}
+
+/* onboarding */
+#ob{position:fixed;inset:0;z-index:30;background:radial-gradient(ellipse at 50% 20%,#2a1a06,#07090d 60%);display:flex;flex-direction:column;justify-content:center;
+ padding:calc(var(--st) + 30px) 26px calc(var(--sb) + 30px);transition:opacity .45s,transform .45s}
+#ob.out{opacity:0;transform:scale(1.04);pointer-events:none}
+#ob .logo{width:96px;height:96px;border-radius:26px;margin:0 auto 22px;box-shadow:0 20px 60px -10px rgba(var(--ar),.55);display:block}
+#ob h1{text-align:center;font-size:38px;font-weight:900;letter-spacing:-.03em}
+#ob p{text-align:center;color:var(--t2);font-size:16px;line-height:1.45;margin:10px 0 28px}
+#ob label{font-size:13px;font-weight:700;color:var(--t3);margin:0 2px 8px;display:block}
+.inp{width:100%;height:54px;border-radius:15px;background:rgba(255,255,255,.07);border:1px solid var(--line);padding:0 16px;outline:none;font-size:18px;font-weight:700;letter-spacing:.04em}
+.inp:focus{border-color:rgba(var(--ar),.6)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 26px}
+.chip{padding:8px 13px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:14px;font-weight:700;color:var(--t2)}
+.chip.on{background:rgba(var(--ar),.16);border-color:rgba(var(--ar),.5);color:var(--a1)}
+</style>
+</head>
+<body>
+<div id="bg"><i></i><i></i></div>
+<header id="top">
+ <div class="t1">
+  <button id="fcBtn" data-act="settings"><b><span id="fcName">FC</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 14.1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9.9 4.6V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.4 2.9H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></b><span id="clock">-</span></button>
+  <div class="spd" id="spd">
+   <button data-act="speed" data-s="0" aria-label="Pause"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>
+   <button data-act="speed" data-s="1">1×</button><button data-act="speed" data-s="2">2×</button><button data-act="speed" data-s="4">4×</button>
+  </div>
+ </div>
+ <div class="t2r">
+  <div class="st"><i>Cash</i><b id="hCash">-</b></div>
+  <div class="st"><i>Rating</i><b id="hStars">-</b></div>
+  <div class="st"><i>Morale</i><b id="hMor">-</b></div>
+  <div class="st"><i>On time</i><b id="hOt">-</b></div>
+ </div>
+</header>
+<div id="dayBan" data-act="dayReport"></div>
+<main id="app">
+ <section class="page on" id="p-floor">
+  <div id="season"></div>
+  <div class="cvw"><canvas id="cv"></canvas></div>
+  <div class="legend"><span><i style="background:#ff9f1c"></i>Associate</span><span><i style="background:#2dd4bf"></i>Temp</span><span><i style="background:#e9eef5"></i>In training</span><span><i style="background:#ff6b00;border-radius:2px"></i>Robot</span></div>
+  <div id="flInfo"></div>
+ </section>
+ <section class="page" id="p-team"></section>
+ <section class="page" id="p-build"></section>
+ <section class="page" id="p-stats"></section>
+ <section class="page" id="p-goals"></section>
+</main>
+<nav id="tabs">
+ <button data-tab="floor" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5V20H3z"/><path d="M7 20v-7h10v7M7 16.5h10"/></svg><span>Floor</span></button>
+ <button data-tab="team"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M16.5 13.6c2.2.2 3.6 1.7 4 4.4"/></svg><span>Team</span></button>
+ <button data-tab="build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="10" height="11" rx="2"/><path d="M7 9V6a2 2 0 0 1 4 0v3M14 13h3l3 3v4h-6"/><circle cx="9" cy="14.5" r="1.4"/></svg><span>Build</span></button>
+ <button data-tab="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Stats</span></button>
+ <button data-tab="goals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/></svg><span>Goals</span><i class="badge" id="gBadge" style="display:none">0</i></button>
+</nav>
+<div id="scrim"></div><div id="sheet"></div>
+<div id="modal"></div>
+<div id="toast"></div>
+<canvas id="fxc"></canvas>
+<label id="hap"><input type="checkbox" switch></label>
+<script>
+/* ================= FC TYCOON ENGINE (no DOM) ================= */
+const DEPTS=['inb','pick','pack','ship'];
+const DN={inb:'Inbound',pick:'Pick',pack:'Pack',ship:'Ship'};
+const DI={inb:'🚛',pick:'🛒',pack:'📦',ship:'🚚'};
+const RATE={inb:95,pick:60,pack:70,ship:150};
+const MACH={inb:{name:'Auto-receive line',add:380,cost:90000,ic:'🏗️'},pick:{name:'Robot drive fleet (10)',add:520,cost:110000,ic:'🤖'},
+ pack:{name:'Auto-packer',add:480,cost:120000,ic:'⚙️'},ship:{name:'Smart sorter',add:850,cost:140000,ic:'🔀'}};
+const LV=[null,{name:'Small FC',cap:100,store:60000,dem:1,rent:2500,mach:3,dock:16000},
+ {name:'Large FC',cap:200,store:130000,dem:1.8,rent:5000,mach:6,dock:30000,cost:600000},
+ {name:'Mega FC',cap:420,store:280000,dem:3.4,rent:9500,mach:12,dock:60000,cost:1800000}];
+const UPS=[
+ ['scan','Faster scanners','Every associate works 10% faster',45000,'📟'],
+ ['brk','Break room upgrade','Morale +8, fewer people quit',25000,'☕'],
+ ['ac','Air conditioning','No productivity loss in Melbourne summer heat',60000,'❄️'],
+ ['safe','Safety program','Incidents drop by 60%',30000,'🦺'],
+ ['acad','Training academy','New hires ramp up in 1 day at 70% speed',35000,'🎓'],
+ ['maint','Robot maintenance crew','Machine breakdowns drop by 60%',40000,'🔧'],
+ ['gen','Backup generator','Power outages no longer stop the floor',30000,'🔋'],
+ ['solar','Solar roof','Power bill halved',90000,'☀️'],
+ ['mezz','Storage mezzanine','Storage space +60%',150000,'🏬'],
+ ['yard','Truck yard expansion','Twice the room for waiting inbound trucks',50000,'🅿️']];
+const START=new Date(2026,9,1);
+const HW=(()=>{const w=[.35,.25,.2,.2,.25,.4,.6,.8,.95,1.05,1.1,1.15,1.2,1.15,1.1,1.1,1.15,1.25,1.4,1.55,1.6,1.5,1.1,.7];const s=w.reduce((a,b)=>a+b,0);return w.map(x=>x/s)})();
+const ON_REV=3.0,LATE_REV=1.5,PACKAGING=.25,MAINT=50;
+let G=null;
+const E={toast(){},event(){},day(){},over(){},year(){},goal(){}};
+const rnd=Math.random;
+const qsum=q=>q.reduce((a,c)=>a+c[1],0);
+function qmove(from,to,n){let left=n;const out=[];while(left>1e-9&&from.length){const c=from[0];const t=Math.min(c[1],left);c[1]-=t;left-=t;out.push([c[0],t]);if(c[1]<=1e-9)from.shift()}
+ if(to)for(const c of out){const l=to[to.length-1];if(l&&l[0]===c[0])l[1]+=c[1];else to.push([c[0],c[1]])}return out}
+function dateOf(d){return new Date(START.getFullYear(),START.getMonth(),START.getDate()+d)}
+function abs(){return G.day*24+G.hour}
+function blankDay(){return{inO:0,ship:0,on:0,late:0,canc:0,rev:0,wage:0,other:0,util:{inb:0,pick:0,pack:0,ship:0},opH:0,quit:0,hired:0,inc:0,turned:0,stockout:0}}
+function newGame(){G={v:1,day:0,hour:6,cash:150000,rep:72,morale:72,wage:30,sched:'day',met:false,lv:1,
+ D:{inb:{n:9,t:0,tr:[],m:0},pick:{n:11,t:0,tr:[],m:0},pack:{n:10,t:0,tr:[],m:0},ship:{n:5,t:0,tr:[],m:0}},
+ up:{},down:{inb:0,pick:0,pack:0,ship:0},mDown:{inb:[],pick:[],pack:[],ship:[]},stock:32000,dock:2500,
+ q:{w:[[-10,900],[-6,700],[-2,600]],p:[],k:[]},td:blankDay(),hist:[],tot:{ship:0,on:0,late:0,canc:0,profit:0,hired:0,inc:0},
+ goals:{},fx:[],streak:0,debt:0,base:5600,flags:{},lastEv:0,over:false,flow:{inb:0,pick:0,pack:0,ship:0},caps:{inb:0,pick:0,pack:0,ship:0},
+ bonusMorale:0,mHist:[],tutorial:0};
+ G.dayBase=dayDemand(0);G.inbDaily=inboundPlan();return G}
+
+/* ---------- calendar ---------- */
+function blackFriday(y){const d=new Date(y,10,1);let n=0;while(true){if(d.getDay()===4){n++;if(n===4)break}d.setDate(d.getDate()+1)}d.setDate(d.getDate()+1);return d}
+function season(dt){const y=dt.getFullYear(),m=dt.getMonth(),d=dt.getDate();const bf=blackFriday(y);const diff=Math.round((dt-bf)/864e5);
+ if(diff>=0&&diff<=3)return[4,'Black Friday'];
+ if(m===6&&(d===8||d===9))return[3.5,'Prime Day'];
+ if(m===6&&d>=1&&d<8)return[1.2,'Prime Day soon'];
+ if(m===11&&d===25)return[.3,'Christmas Day'];
+ if(m===11&&(d===26||d===27))return[1.9,'Boxing Day'];
+ if((m===10&&d>=15)||(m===11&&d<=22))return[2.2,'Peak'];
+ if(m===11&&(d===23||d===24))return[1.4,'Last-minute gifts'];
+ if(m===10)return[1.3,'Pre-peak'];
+ if(m===0&&d<=20)return[.75,'January slump'];
+ if(m===5&&d>=20)return[1.3,'EOFY sales'];
+ return[1,'']}
+const DOWM=[.85,1.12,1.05,1,1,1,.9];
+function dayDemand(day){const dt=dateOf(day);return G.base*(1+day*.0012)*season(dt)[0]*DOWM[dt.getDay()]*(.7+G.rep/100*.6)*LV[G.lv].dem*(.93+rnd()*.14)*(G.flags.contract?1.12:1)}
+function storeCap(){return LV[G.lv].store*(G.up.mezz?1.6:1)}
+function inboundPlan(){let f=0;for(let i=0;i<4;i++){const dt=dateOf(G.day+i);f+=G.base*(1+(G.day+i)*.0012)*season(dt)[0]*(.7+G.rep/100*.6)*LV[G.lv].dem}f/=4;
+ const target=f*4.2;let x=f+(target-G.stock-G.dock)/4;return Math.max(0,Math.min(x,storeCap()*.5))}
+
+/* ---------- schedule ---------- */
+const SCHED={day:{name:'Day shift',h:10},two:{name:'Two shifts',h:20},'247':{name:'24/7',h:24}};
+function isOp(h){const met=G.met?2:0;if(G.sched==='247')return true;const len=SCHED[G.sched].h+met;const rel=(h-6+24)%24;return rel<len}
+const isNight=h=>h>=18||h<6;
+function opHours(){return Math.min(24,SCHED[G.sched].h+(G.met&&G.sched!=='247'?2:0))}
+function fx(k){const a=abs();let m=1;for(const f of G.fx)if(f.k===k&&f.until>a)m*=f.m;return m}
+function addFx(k,m,hours){G.fx=G.fx.filter(f=>f.until>abs());G.fx.push({k,m,until:abs()+hours})}
+function summer(){const m=dateOf(G.day).getMonth();return m===11||m<=1}
+function prod(){return(.75+G.morale/100*.35)*fx('prod')*fx('att')*(G.heat&&!G.up.ac?.85:1)}
+function trainees(d){return G.D[d].tr.reduce((a,t)=>a+t.n,0)}
+function heads(d){const x=G.D[d];return x.n+trainees(d)+x.t}
+function headsAll(){return DEPTS.reduce((a,d)=>a+heads(d),0)}
+function machUp(d){const a=abs();return Math.max(0,G.D[d].m-G.mDown[d].filter(u=>u>a).length)}
+function cap(d){if(G.down[d]>abs())return 0;const x=G.D[d];const r=RATE[d]*(G.up.scan?1.1:1)*(d==='pick'&&G.flags.slot?1.06:1);
+ const ppl=(x.n+trainees(d)*(G.up.acad?.7:.5)+x.t*.85)*r*prod();return ppl+machOut(d,ppl)}
+/* machines need people to run them: they can add at most 1.5x what the team does by hand */
+function machOut(d,ppl){return Math.min(machUp(d)*MACH[d].add*(G.flags.robo?1.05:1),ppl*1.5)}
+function capDay(d){return cap(d)*opHours()}
+
+/* ---------- hourly simulation ---------- */
+function tick(){const a=abs(),h=G.hour,td=G.td,op=isOp(h);
+ const o=G.dayBase*HW[h]*fx('demand');G.q.w.push([a,o]);td.inO+=o;
+ G.dock+=G.inbDaily/24*fx('inbound');const dc=LV[G.lv].dock*(G.up.yard?2:1);if(G.dock>dc){td.turned+=G.dock-dc;G.dock=dc}
+ const out=G.outage>a&&!G.up.gen;
+ const fl={inb:0,pick:0,pack:0,ship:0};
+ if(op&&!out){const c={};DEPTS.forEach(d=>c[d]=cap(d));G.caps=c;
+  fl.inb=Math.min(c.inb,G.dock,Math.max(0,storeCap()-G.stock));G.dock-=fl.inb;G.stock+=fl.inb;
+  const want=Math.min(c.pick,qsum(G.q.w));fl.pick=Math.min(want,G.stock);if(want-fl.pick>1)td.stockout+=want-fl.pick;qmove(G.q.w,G.q.p,fl.pick);G.stock-=fl.pick;
+  fl.pack=Math.min(c.pack,qsum(G.q.p));qmove(G.q.p,G.q.k,fl.pack);
+  fl.ship=Math.min(c.ship,qsum(G.q.k));for(const co of qmove(G.q.k,null,fl.ship)){if(a-co[0]<=24)td.on+=co[1];else td.late+=co[1]}
+  DEPTS.forEach(d=>{if(c[d]>0)td.util[d]+=Math.min(1,fl[d]/c[d])});td.opH++;
+  const nm=isNight(h)?1.25:1;let w=0;DEPTS.forEach(d=>{const x=G.D[d];w+=((x.n+trainees(d))*G.wage+x.t*(G.wage-2))*nm});
+  const mc=DEPTS.reduce((s,d)=>s+G.D[d].m,0)*MAINT+fl.ship*PACKAGING;td.wage+=w;td.other+=mc;G.cash-=w+mc;
+  /* incidents */
+  let ch=.03/opHours();const ut=fl.pick/(c.pick||1);if(ut>.97)ch*=2.2;if(G.morale<40)ch*=2;if(G.met)ch*=1.4;if(G.up.safe)ch*=.4;
+  if(rnd()<ch){const d=DEPTS[Math.floor(rnd()*4)];G.down[d]=a+3;G.cash-=8000;td.other+=8000;G.rep=Math.max(0,G.rep-2);G.morale=Math.max(0,G.morale-4);td.inc++;G.tot.inc++;
+   E.toast('⚠️ Safety incident in '+DN[d]+'. Area stopped for 3 hours ($8,000)','bad')}}
+ else G.caps={inb:0,pick:0,pack:0,ship:0};
+ G.flow=fl;
+ const rev=0;/* revenue counted at end of day from on/late */
+ /* cancellations after 72h */
+ while(G.q.w.length&&a-G.q.w[0][0]>72){td.canc+=G.q.w[0][1];G.q.w.shift()}
+ G.hour++;if(G.hour===9)maybeEvent();
+ if(G.hour===24){G.hour=0;endDay()}}
+
+function endDay(){const td=G.td,dt=dateOf(G.day);
+ const rev=td.on*ON_REV+td.late*LATE_REV;G.cash+=rev;td.rev=rev;
+ const fixed=LV[G.lv].rent+1500*(G.up.solar?.5:1)+(G.lv-1)*800;G.cash-=fixed;td.other+=fixed;
+ const done=td.on+td.late+td.canc;const ot=done>0?td.on/done:1;
+ const target=Math.max(0,Math.min(100,(ot-.75)/.25*100));G.rep+=(target-G.rep)*.2;G.rep-=Math.min(8,td.canc/Math.max(1,td.inO)*25);G.rep=Math.max(0,Math.min(100,G.rep));
+ /* morale */
+ const uts=DEPTS.map(d=>td.opH?td.util[d]/td.opH:0);const avgU=uts.reduce((a,b)=>a+b,0)/4;
+ let mt=66+(G.wage-30)*3+(G.up.brk?8:0)-(G.met?13:0)-(G.sched==='247'?5:0)-(avgU>.95?8:avgU<.55?-3:0)-(G.heat&&!G.up.ac?8:0)+G.bonusMorale;
+ G.bonusMorale*=.8;G.morale+=(Math.max(5,Math.min(98,mt))-G.morale)*.22;G.morale=Math.max(0,Math.min(100,G.morale));
+ G.mHist.push(Math.round(G.morale));if(G.mHist.length>30)G.mHist.shift();
+ /* attrition */
+ const q=.0015+Math.max(0,55-G.morale)/55*.03+(G.up.brk?0:.001);let quit=0;const qm=fx('quit');
+ DEPTS.forEach(d=>{const x=G.D[d];let k=0;for(let i=0;i<x.n;i++)if(rnd()<q*qm)k++;x.n-=k;quit+=k});td.quit=quit;
+ if(quit>=3)E.toast(quit+' associates quit yesterday. Check morale and pay','bad');
+ /* trainees graduate */
+ DEPTS.forEach(d=>{const x=G.D[d];x.tr=x.tr.filter(t=>{if(t.until<=G.day+1){x.n+=t.n;return false}return true})});
+ /* machine breakdowns */
+ DEPTS.forEach(d=>{for(let i=0;i<G.D[d].m;i++)if(rnd()<(G.up.maint?.015:.04)){G.mDown[d].push(abs()+24+8+Math.floor(rnd()*6));E.toast('🔧 A '+MACH[d].name.replace(/ \(.*\)/,'')+' broke down. Repairs take about 8 hours','bad')}
+  G.mDown[d]=G.mDown[d].filter(u=>u>abs()+24)});
+ /* history */
+ const profit=td.rev-td.wage-td.other;
+ G.hist.push({d:G.day,inO:Math.round(td.inO),ship:Math.round(td.on+td.late),ot:Math.round(ot*1000)/10,profit:Math.round(profit),cash:Math.round(G.cash),rep:Math.round(G.rep),mor:Math.round(G.morale),canc:Math.round(td.canc)});
+ if(G.hist.length>400)G.hist.shift();
+ G.tot.ship+=td.on+td.late;G.tot.on+=td.on;G.tot.late+=td.late;G.tot.canc+=td.canc;G.tot.profit+=profit;
+ G.streak=ot>=.95&&td.on+td.late>0?G.streak+1:0;
+ const report={date:dt,inO:td.inO,ship:td.on+td.late,ot,profit,canc:td.canc,quit,turned:td.turned,stockout:td.stockout,season:season(dt)[1]};
+ /* next day */
+ G.day++;const nd=dateOf(G.day);
+ if(nd.getMonth()===0&&nd.getDate()===3){let n=0;DEPTS.forEach(d=>{n+=G.D[d].t;G.D[d].t=0});if(n)E.toast('Peak is over: '+n+' temps finished their contracts','')}
+ G.heat=summer()&&rnd()<.18;if(G.heat)E.toast('🌡️ Heatwave in Melbourne today'+(G.up.ac?'. Your air conditioning keeps the floor cool':'. Associates slow down by 15%'),G.up.ac?'':'bad');
+ G.dayBase=dayDemand(G.day);G.inbDaily=inboundPlan();G.td=blankDay();
+ if(G.cash<-250000){G.debt++;if(G.debt===1)E.toast('🏦 You are $250k in debt. Get profitable within 5 days or corporate closes the site','bad');if(G.debt>=5){G.over=true;E.over()}}else G.debt=0;
+ if(G.rep<8&&G.day>20){G.over=true;E.over('rep')}
+ vpCheck(report);checkGoals();
+ E.day(report);
+ if(nd.getMonth()===0&&nd.getDate()===1)E.year(nd.getFullYear()-1)}
+
+/* ---------- actions ---------- */
+function hire(d,n=1){if(headsAll()+n>LV[G.lv].cap){E.toast('Building is full ('+LV[G.lv].cap+' people). Expand to hire more','bad');return false}
+ const c=300*n;G.cash-=c;G.td.other+=c;G.D[d].tr.push({n,until:G.day+(G.up.acad?1:2)});G.td.hired+=n;G.tot.hired+=n;return true}
+function fire(d,n=1){const x=G.D[d];let k=Math.min(n,x.n+trainees(d));let r=k;while(r>0&&x.tr.length){const t=x.tr[x.tr.length-1];const m=Math.min(t.n,r);t.n-=m;r-=m;if(!t.n)x.tr.pop()}
+ x.n-=r;G.cash-=500*k;G.td.other+=500*k;G.morale=Math.max(0,G.morale-.6*k);return k}
+function peakTime(){const m=dateOf(G.day).getMonth();return m>=9&&m<=11||(m===0&&dateOf(G.day).getDate()<3)}
+function hireTemp(d,n=5){if(!peakTime()){E.toast('Agencies only supply temps from October to December','bad');return false}
+ if(headsAll()+n>LV[G.lv].cap){E.toast('Building is full. Expand to fit more people','bad');return false}G.cash-=120*n;G.td.other+=120*n;G.D[d].t+=n;return true}
+function dropTemp(d,n=5){G.D[d].t=Math.max(0,G.D[d].t-n)}
+function buyMach(d){const c=MACH[d].cost;if(G.D[d].m>=LV[G.lv].mach){E.toast('No floor space for more. Expand the building','bad');return false}
+ if(G.cash<c){E.toast('Not enough cash','bad');return false}G.cash-=c;G.td.other+=c;G.D[d].m++;return true}
+function buyUp(k){const u=UPS.find(x=>x[0]===k);if(G.up[k])return false;if(G.cash<u[3]){E.toast('Not enough cash','bad');return false}G.cash-=u[3];G.td.other+=u[3];G.up[k]=1;if(k==='brk')G.morale=Math.min(100,G.morale+5);return true}
+function expand(){const n=LV[G.lv+1];if(!n)return false;if(G.cash<n.cost){E.toast('Not enough cash','bad');return false}G.cash-=n.cost;G.td.other+=n.cost;G.lv++;G.dayBase=dayDemand(G.day);return true}
+function pizza(){const n=headsAll(),c=20*n;G.cash-=c;G.td.other+=c;G.morale=Math.min(100,G.morale+6);G.bonusMorale+=2;return c}
+function bonus(){const n=headsAll(),c=200*n;G.cash-=c;G.td.other+=c;G.morale=Math.min(100,G.morale+14);G.bonusMorale+=6;return c}
+
+/* ---------- events ---------- */
+const EVENTS=[
+ {id:'viral',w:3,t:'📈 A product went viral',x:'A gadget you stock is all over TikTok. Orders could jump 40% for the next 3 days.',
+  c:[['Bring it on',()=>{addFx('demand',1.4,72);return'Orders will surge for 3 days. Watch your backlog.'}],['Cap the orders',()=>{addFx('demand',1.15,72);G.rep-=1;return'You limited it to +15%. A few customers were disappointed.'}]]},
+ {id:'heat',w:2,ok:()=>summer()&&!G.up.ac,t:'🌡️ Heatwave coming',x:'The Bureau says 41°C for the next two days. The floor will be brutal.',
+  c:[['Buy fans, ice and electrolytes ($8,000)',()=>{G.cash-=8000;G.td.other+=8000;G.morale=Math.min(100,G.morale+3);return'The team appreciates it. Morale is holding.'}],['Push through',()=>{addFx('prod',.85,48);G.morale-=10;return'Productivity drops 15% for 2 days and morale takes a hit.'}]]},
+ {id:'robo',w:2,ok:()=>DEPTS.some(d=>G.D[d].m>0)&&!G.flags.robo,t:'🤖 Robot software update',x:'The vendor has a firmware update that promises 5% more speed.',
+  c:[['Install tonight ($3,000)',()=>{G.cash-=3000;G.td.other+=3000;if(rnd()<.8){G.flags.robo=1;return'Worked. Machines are now 5% faster.'}DEPTS.forEach(d=>{for(let i=0;i<G.D[d].m;i++)G.mDown[d].push(abs()+10)});return'Bug! Machines are offline for 10 hours while it rolls back.'}],['Skip it',()=>'No change.']]},
+ {id:'vp',w:2,t:'👔 VP site visit tomorrow',x:'A VP is flying in to walk the floor. They care about on-time delivery and a clean, safe site.',
+  c:[['Deep clean and prep ($5,000)',()=>{G.cash-=5000;G.td.other+=5000;G.flags.vp={day:G.day+1,need:.9};return'Floor is spotless. You need 90% on time tomorrow.'}],['Business as usual',()=>{G.flags.vp={day:G.day+1,need:.96};return'You need 96% on time tomorrow to impress.'}]]},
+ {id:'comp',w:2,ok:()=>!G.flags.compDone,t:'🏢 Competitor opening nearby',x:'A rival warehouse 5 minutes away is hiring at $2 more an hour.',
+  c:[['Match the pay (+$2/h)',()=>{G.wage+=2;G.flags.compDone=1;return'Your associates stay. Wages are now $'+G.wage+'/h.'}],['Hold firm',()=>{addFx('quit',3.5,24*10);G.flags.compDone=1;return'Expect more people to quit for the next 10 days.'}]]},
+ {id:'strike',w:2,t:'🚧 Trucking strike',x:'Drivers are striking. Inbound deliveries will be halved for 3 days.',
+  c:[['Pay for rail freight ($20,000)',()=>{G.cash-=20000;G.td.other+=20000;return'Stock keeps flowing.'}],['Wait it out',()=>{addFx('inbound',.5,72);return'Inbound halved for 3 days. Watch your stock level.'}]]},
+ {id:'flu',w:2,ok:()=>{const m=dateOf(G.day).getMonth();return m>=4&&m<=8},t:'🤒 Flu season',x:'Flu is going around the site. Attendance could drop 12% for 4 days.',
+  c:[['Free flu shots ($6,000)',()=>{G.cash-=6000;G.td.other+=6000;addFx('att',.96,96);return'Only a small dip in attendance.'}],['Do nothing',()=>{addFx('att',.88,96);return'Attendance down 12% for 4 days.'}]]},
+ {id:'idea',w:2,ok:()=>!G.flags.slot,t:'💡 An associate has an idea',x:'A picker suggests re-slotting fast movers closer to the stations.',
+  c:[['Try it ($4,000)',()=>{G.cash-=4000;G.td.other+=4000;if(rnd()<.75){G.flags.slot=1;G.morale+=3;return'Brilliant. Pick is 6% faster for good.'}return'It did not help this time, but the team liked being heard.'}],['Not now',()=>{G.morale-=1;return'Maybe later.'}]]},
+ {id:'power',w:1,ok:()=>!G.up.gen,t:'⚡ Power outage',x:'A storm took out power to the industrial park. It could be down for 3 hours.',
+  c:[['Rent a generator ($9,000)',()=>{G.cash-=9000;G.td.other+=9000;return'Lights stay on.'}],['Wait',()=>{G.outage=abs()+3;return'The floor stops for 3 hours.'}]]},
+ {id:'review',w:1,t:'⭐ Viral 5-star review',x:'A customer posted about getting their order in under a day. It is trending.',c:[['Nice!',()=>{G.rep=Math.min(100,G.rep+5);return'Reputation up.'}]]},
+ {id:'contract',w:1,ok:()=>!G.flags.contract&&G.rep>60,t:'🤝 Big seller wants your site',x:'A major brand wants to move its stock to your FC. Base orders would rise 12% for good.',
+  c:[['Sign the contract',()=>{G.flags.contract=1;G.cash+=15000;return'Signed. $15,000 signing bonus, and 12% more orders from now on.'}],['Decline',()=>'Maybe next time.']]}];
+function maybeEvent(){if(G.day-G.lastEv<2||rnd()>.2)return;const ok=EVENTS.filter(e=>!e.ok||e.ok());let tw=ok.reduce((a,e)=>a+e.w,0),r=rnd()*tw;
+ for(const e of ok){r-=e.w;if(r<=0){G.lastEv=G.day;E.event(e);return}}}
+function vpCheck(rep){if(G.flags.vp&&G.flags.vp.day===G.day-1){const need=G.flags.vp.need;delete G.flags.vp;
+ if(rep.ot>=need){G.cash+=25000;G.rep=Math.min(100,G.rep+3);E.toast('👔 The VP loved the site! $25,000 bonus','good')}else{G.rep-=4;G.morale-=3;E.toast('👔 The VP was not impressed by the late orders','bad')}}}
+
+/* ---------- goals ---------- */
+const GOALS=[
+ ['first',"Ship your first 5,000 orders",()=>G.tot.ship>=5000,10000],
+ ['hire40',"Grow the team to 45 people",()=>headsAll()>=45,8000],
+ ['robot',"Buy your first machine",()=>DEPTS.some(d=>G.D[d].m>0),15000],
+ ['streak',"7 days in a row at 95%+ on time",()=>G.streak>=7,25000],
+ ['bf',"Survive Black Friday weekend at 90%+ on time",()=>G.flags.bfDone,50000],
+ ['peak',"Reach Christmas Eve with 4 stars or more",()=>G.flags.peakDone,75000],
+ ['cash500',"Have $500,000 in the bank",()=>G.cash>=500000,20000],
+ ['expand',"Expand to a Large FC",()=>G.lv>=2,50000],
+ ['five',"Earn a 5-star rating",()=>stars()>=4.95,100000],
+ ['prime',"Ship Prime Day at 90%+ on time",()=>G.flags.primeDone,80000],
+ ['mega',"Build a Mega FC",()=>G.lv>=3,150000],
+ ['million',"Ship 1,000,000 orders",()=>G.tot.ship>=1e6,250000]];
+function stars(){return Math.max(1,Math.min(5,1+G.rep/25))}
+function checkGoals(){const h=G.hist;const last=h[h.length-1];
+ if(last){const dt=dateOf(last.d),bf=blackFriday(dt.getFullYear()),diff=Math.round((dt-bf)/864e5);
+  if(diff===3){const w=h.slice(-4);const ot=w.reduce((a,x)=>a+x.ot,0)/w.length;if(ot>=90)G.flags.bfDone=1;else E.toast('Black Friday weekend finished at '+ot.toFixed(1)+'% on time','bad')}
+  if(dt.getMonth()===11&&dt.getDate()===24&&stars()>=4)G.flags.peakDone=1;
+  if(dt.getMonth()===6&&dt.getDate()===9){const w=h.slice(-2);if(w.reduce((a,x)=>a+x.ot,0)/2>=90)G.flags.primeDone=1}}
+ for(const g of GOALS)if(!G.goals[g[0]]&&g[2]()){G.goals[g[0]]='done';E.goal(g)}}
+function claim(id){const g=GOALS.find(x=>x[0]===id);if(G.goals[id]!=='done')return;G.goals[id]='claimed';G.cash+=g[3];return g[3]}
+
+/* ================= UI ================= */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SKEY='fct.v1';
+const DEFS=()=>({name:'',sound:true,haptics:true,pauseDay:false,ffClosed:true,speed:1,tut:false,best:0});
+let S=DEFS(),wiping=false;
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function dstr(dt,y){return DAYS[dt.getDay()]+' '+dt.getDate()+' '+MON[dt.getMonth()]+(y?' '+dt.getFullYear():'')}
+function fm(n){const a=Math.abs(n),s=n<0?'-':'';if(a>=1e6)return s+'$'+(a/1e6).toFixed(a>=1e7?1:2)+'M';if(a>=1e4)return s+'$'+Math.round(a/1e3)+'k';if(a>=1e3)return s+'$'+(a/1e3).toFixed(1)+'k';return s+'$'+Math.round(a)}
+function fmF(n){return(n<0?'-$':'$')+Math.round(Math.abs(n)).toLocaleString('en-AU')}
+function fn(n){return Math.round(n).toLocaleString('en-AU')}
+function fk(n){const a=Math.abs(n);if(a>=1e6)return(n/1e6).toFixed(1)+'M';if(a>=1e4)return Math.round(n/1e3)+'k';return fn(n)}
+const hh=h=>String(h).padStart(2,'0')+':00';
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+function save(){if(wiping)return;try{localStorage.setItem(SKEY,JSON.stringify({S,G}))}catch(e){}}
+function fillG(){const keep=G;const b=newGame();G=keep;for(const k in b)if(G[k]===undefined)G[k]=b[k];if(!G.cool)G.cool={pizza:-9,bonus:-99};if(!G.news)G.news=[];if(!G.name)G.name=S.name||'MEL1'}
+function load(){try{const j=JSON.parse(localStorage.getItem(SKEY)||'null');if(!j)return;S=Object.assign(DEFS(),j.S||{});
+ if(j.G&&!j.G.over){const keep=j.G;newGame();const b=G;G=keep;for(const k in b)if(G[k]===undefined)G[k]=b[k];fillG()}}catch(e){G=null}}
+
+/* ---------- feedback ---------- */
+const hapEl=$('hap');
+function haptic(n=1){if(!S.haptics)return;try{for(let i=0;i<n;i++)setTimeout(()=>hapEl.click(),i*90)}catch(e){}
+ if(navigator.vibrate)try{navigator.vibrate(n>1?[12,60,12]:12)}catch(e){}}
+let AC=null;
+function ac(){if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C()}if(AC.state==='suspended')AC.resume();return AC}
+['touchstart','pointerdown','keydown'].forEach(e=>addEventListener(e,()=>{if(S.sound)ac()},{once:true,passive:true}));
+function tone(f,t0,dur,vol=.1,type='sine',f2){const a=ac();if(!a)return;const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0;
+ o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);g.gain.setValueAtTime(0,t);
+ g.gain.linearRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+dur+.05)}
+const SFX={
+ tap(){tone(880,0,.07,.05,'triangle')},
+ buy(){tone(660,0,.08,.07,'square');tone(990,.07,.18,.06,'triangle')},
+ cash(){tone(1318,0,.08,.07,'square');tone(1975,.07,.28,.05)},
+ bad(){tone(220,0,.22,.07,'sawtooth',150)},
+ goal(){[523,659,784,1046].forEach((f,i)=>tone(f,i*.08,.45,.07));tone(1318,.34,.8,.05,'triangle')},
+ horn(){tone(196,0,.35,.06,'sawtooth');tone(247,0,.35,.04,'sawtooth')},
+ event(){tone(740,0,.12,.07,'triangle');tone(988,.12,.3,.07,'triangle')},
+ over(){[392,330,262,196].forEach((f,i)=>tone(f,i*.16,.5,.07,'triangle'))}};
+function sfx(n){if(S.sound)try{SFX[n]()}catch(e){}}
+
+const fxc=$('fxc'),fxx=fxc.getContext('2d');let parts=[],fxRun=false;
+function sizeFx(){const r=devicePixelRatio||1;fxc.width=innerWidth*r;fxc.height=innerHeight*r;fxx.setTransform(r,0,0,r,0,0)}
+addEventListener('resize',sizeFx);sizeFx();
+function confetti(x,y,n=120,spread=1){const cols=['#ffc15e','#ff8a00','#ffffff','#2dd4bf'];x=x==null?innerWidth/2:x;y=y==null?innerHeight*.35:y;
+ for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,v=(3+Math.random()*9)*spread;
+  parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-5*spread,r:3+Math.random()*4,c:cols[i%4],rot:Math.random()*6,vr:(Math.random()-.5)*.4,life:1,sq:Math.random()<.5})}
+ if(!fxRun){fxRun=true;requestAnimationFrame(fxLoop)}}
+function sparkle(el){const r=el.getBoundingClientRect();confetti(r.left+r.width/2,r.top+r.height/2,26,.5)}
+function fxLoop(){fxx.clearRect(0,0,innerWidth,innerHeight);parts=parts.filter(p=>p.life>0&&p.y<innerHeight+40);
+ for(const p of parts){p.vy+=.28;p.vx*=.985;p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;p.life-=.008;
+  fxx.save();fxx.globalAlpha=clamp(p.life*1.6,0,1);fxx.translate(p.x,p.y);fxx.rotate(p.rot);fxx.fillStyle=p.c;
+  if(p.sq)fxx.fillRect(-p.r,-p.r/2,p.r*2,p.r);else{fxx.beginPath();fxx.arc(0,0,p.r*.7,0,7);fxx.fill()}fxx.restore()}
+ if(parts.length)requestAnimationFrame(fxLoop);else{fxRun=false;fxx.clearRect(0,0,innerWidth,innerHeight)}}
+
+/* ---------- toast queue ---------- */
+const tq=[];let tBusy=false,tTimer=0;
+function toast(msg,kind='',btn,fnc){tq.push({msg,kind,btn,fnc});if(tq.length>3)tq.splice(0,tq.length-3);if(!tBusy)nextToast()}
+function nextToast(){const it=tq.shift(),t=$('toast');if(!it){tBusy=false;return}tBusy=true;
+ t.className=it.kind||'';t.innerHTML='<span>'+esc(it.msg)+'</span>'+(it.btn?'<button id="tBtn">'+esc(it.btn)+'</button>':'');
+ if(it.btn)$('tBtn').onclick=()=>{hideToast();it.fnc&&it.fnc()};
+ requestAnimationFrame(()=>t.classList.add('on'));clearTimeout(tTimer);tTimer=setTimeout(hideToast,it.btn?4200:2800)}
+function hideToast(){$('toast').classList.remove('on');clearTimeout(tTimer);setTimeout(nextToast,380)}
+function news(msg,kind=''){if(!G)return;G.news.unshift({d:G.day,h:G.hour,m:msg,k:kind});if(G.news.length>25)G.news.length=25}
+
+/* ---------- sheet ---------- */
+let sheetR=null;
+function openSheet(render){sheetR=render;const sh=$('sheet');sh.innerHTML='<div class="grab"></div><div id="shB">'+render()+'</div>';sh.scrollTop=0;
+ $('scrim').classList.add('on');requestAnimationFrame(()=>sh.classList.add('on'));haptic()}
+function refreshSheet(){if(sheetR&&$('shB'))$('shB').innerHTML=sheetR()}
+function closeSheet(){$('sheet').classList.remove('on');$('sheet').style.transform='';$('scrim').classList.remove('on');sheetR=null}
+$('scrim').onclick=closeSheet;
+(()=>{let y0=null,dy=0;const sh=$('sheet');
+ sh.addEventListener('touchstart',e=>{if(e.target.closest('.grab,.sh-t')&&sh.scrollTop<=0){y0=e.touches[0].clientY;dy=0;sh.classList.add('drag')}},{passive:true});
+ sh.addEventListener('touchmove',e=>{if(y0==null)return;dy=Math.max(0,e.touches[0].clientY-y0);sh.style.transform='translateY('+dy+'px)'},{passive:true});
+ sh.addEventListener('touchend',()=>{if(y0==null)return;sh.classList.remove('drag');y0=null;if(dy>100)closeSheet();else sh.style.transform=''})})();
+
+/* ---------- modal queue (events, reports, game over) ---------- */
+const mq=[];let modalOn=false;
+function modal(html,mount,opt={}){mq.push({html,mount,opt});if(!modalOn)nextModal()}
+function nextModal(){const m=mq.shift(),el=$('modal');if(!m){modalOn=false;el.classList.remove('on');return}
+ modalOn=true;el.innerHTML='<div class="mc">'+m.html+'</div>';el.onclick=e=>{if(e.target===el&&m.opt.dismiss)closeModal()};
+ requestAnimationFrame(()=>el.classList.add('on'));m.mount&&m.mount(el.firstChild)}
+function closeModal(){$('modal').classList.remove('on');setTimeout(nextModal,240)}
+
+/* ---------- tabs ---------- */
+let tab='floor';const R={};
+function go(t){if(t===tab){$('p-'+t).scrollTo({top:0,behavior:'smooth'});return}tab=t;
+ document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+ document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+t));R[t]&&R[t]();haptic();sfx('tap')}
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>go(b.dataset.tab));
+
+/* ---------- actions (event delegation) ---------- */
+const A={};let lastTouch=0;
+addEventListener('pointerdown',()=>lastTouch=performance.now(),true);
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el||el.disabled)return;const f=A[el.dataset.act];if(f){f(el,e)}});
+function after(){hud();R[tab]&&R[tab]();refreshSheet();save()}
+
+/* ---------- game loop ---------- */
+let speed=0,acc=0,lastT=performance.now(),hoursSinceSave=0;
+function setSpeed(s){speed=s;if(s>0)S.speed=s;document.querySelectorAll('#spd button').forEach(b=>b.classList.toggle('on',+b.dataset.s===s))}
+A.speed=el=>{setSpeed(+el.dataset.s);haptic();sfx('tap');save()};
+function running(){return G&&!G.over&&speed>0&&!modalOn}
+function loop(t){const dt=Math.min(250,t-lastT);lastT=t;
+ if(running()){let sp=speed;if(S.ffClosed&&!isOp(G.hour)&&!(G.outage>abs()))sp=Math.max(sp*4,8);acc+=dt*sp/1000;let n=0;
+  while(acc>=1&&n<10&&running()){acc-=1;stepHour();n++}if(n>=10)acc=0}
+ try{drawFloor(dt)}catch(e){if(!window.__drawErr){window.__drawErr=1;console.error(e)}}
+ requestAnimationFrame(loop)}
+function stepHour(){tick();hoursSinceSave++;if(hoursSinceSave>=6){hoursSinceSave=0;save()}hud();
+ if(performance.now()-lastTouch>1300){if(tab!=='stats')R[tab]&&R[tab]();if(sheetR&&!sheetR.static)refreshSheet()}}
+
+/* ---------- HUD ---------- */
+let lastCash=null;
+function todayOt(){const t=G.td,s=t.on+t.late;if(s>0)return t.on/s;const l=G.hist[G.hist.length-1];return l?l.ot/100:1}
+function hud(){if(!G)return;const dt=dateOf(G.day);
+ $('fcName').textContent=G.name;
+ const mins=speed>0&&running()?Math.floor(acc*4)*15:0;
+ $('clock').textContent=dstr(dt,true)+' · '+String(G.hour).padStart(2,'0')+':'+String(mins).padStart(2,'0');
+ const c=$('hCash');c.textContent=fm(G.cash);c.style.color=G.cash<0?'var(--red)':'';
+ if(lastCash!=null&&Math.abs(G.cash-lastCash)>=20000){c.classList.remove('flash');void c.offsetWidth;c.classList.add('flash')}lastCash=G.cash;
+ $('hStars').textContent='★ '+stars().toFixed(1);$('hStars').style.color=stars()>=4?'var(--a1)':stars()<2.5?'var(--red)':'';
+ const m=$('hMor');m.textContent=Math.round(G.morale)+'%';m.style.color=G.morale<45?'var(--red)':G.morale>=70?'var(--green)':'';
+ const o=todayOt(),oe=$('hOt');oe.textContent=(o*100).toFixed(o>=.995?0:1)+'%';oe.style.color=o<.9?'var(--red)':o>=.97?'var(--green)':'';
+ const nd=GOALS.filter(g=>G.goals[g[0]]==='done').length,b=$('gBadge');b.style.display=nd?'grid':'none';b.textContent=nd}
+setInterval(()=>{if(running())hud()},250);
+
+/* ================= FLOOR CANVAS ================= */
+const cv=$('cv'),cx=cv.getContext('2d');const LW=360,LH=470;let cvK=1,cvW=0;
+function sizeCv(){const w=cv.parentNode.clientWidth||354;if(w===cvW)return;cvW=w;const r=Math.min(3,devicePixelRatio||1);
+ cv.style.height=Math.round(w*LH/LW)+'px';cv.width=Math.round(w*r);cv.height=Math.round(w*LH/LW*r);cvK=w/LW*r}
+addEventListener('resize',()=>{cvW=0});
+const ZN={inb:[0,96],pick:[100,252],pack:[270,352],ship:[370,470]};
+const C1=261,C2=361;
+const RY=[116,142,168,194,220],AY=RY.map(y=>y+19),CXS=[7,130,256];
+const DIN=[22,82,142,202],DOUT=[118,166,214,262,310];
+const rr=(a,b)=>a+Math.random()*(b-a);
+const CELLS=[];RY.forEach(y=>{for(const[a,b]of[[14,122],[138,250]])for(let x=a;x<=b-8;x+=9)CELLS.push({x,y,h:Math.random(),c:['#b9844a','#3a7bd5','#d9b44a','#8a5a2b','#3fa39f','#a8566b'][Math.floor(Math.random()*6)]})});
+const ST=[];for(let r=0;r<2;r++)for(let i=0;i<9;i++)ST.push({x:22+i*30,y:r?322:288});
+let AG=[],RB=[],T1=[],T2=[],sp1=0,sp2=0,clockA=0,syncT=0;
+const inT=DIN.map(()=>({on:0,y:-30})),outT=DOUT.map(()=>({f:Math.random()*.7,y:0,st:0}));
+const MAXV={inb:12,pick:20,pack:18,ship:12};
+const KC={n:'#ff9f1c',t:'#2dd4bf',tr:'#e9eef5'};
+function wantV(d){const x=G.D[d],tr=trainees(d),tot=x.n+tr+x.t;const v=Math.min(tot,MAXV[d]);if(!tot)return{n:0,t:0,tr:0};
+ let t=Math.round(v*x.t/tot),r=Math.round(v*tr/tot);if(x.t>0&&!t&&v>1)t=1;if(tr>0&&!r&&v>2)r=1;return{n:Math.max(0,v-t-r),t,tr:r}}
+function spawnAg(d,k){const a={d,k,x:0,y:0,path:[],w:rr(0,1.2),al:0,ph:Math.random()<.5,carry:0,ai:0,si:-1,bob:Math.random()*6};
+ if(d==='inb'){a.x=rr(20,240);a.y=rr(44,88)}
+ else if(d==='pick'){a.ai=Math.floor(Math.random()*5);a.x=rr(14,250);a.y=AY[a.ai]}
+ else if(d==='pack'){a.x=rr(20,280);a.y=C1+14}
+ else{a.x=rr(110,340);a.y=rr(380,440)}return a}
+function sync(){for(const d of DEPTS){const w=wantV(d);for(const k of['n','t','tr']){const cur=AG.filter(a=>a.d===d&&a.k===k&&!a.gone);let diff=w[k]-cur.length;
+  while(diff>0){AG.push(spawnAg(d,k));diff--}for(let i=0;i<-diff;i++)cur[cur.length-1-i].gone=1}}
+ let i=0;AG.forEach(a=>{if(a.d==='pack'&&!a.gone){if(a.si!==i){a.si=i;a.path=[]}i++}});
+ const m=G.D.pick.m,want=Math.min(18,m*3),br=Math.min(want,(m-machUp('pick'))*3);
+ while(RB.length<want)RB.push({x:270+12*Math.floor(rr(0,7)),y:112+12*Math.floor(rr(0,12)),path:[],w:rr(0,1),pod:Math.random()<.5,c:Math.random()<.5?'#3a7bd5':'#d9b44a'});
+ RB.length=want;RB.forEach((r,j)=>r.br=j<br)}
+function newTarget(a){const d=a.d;
+ if(d==='inb'){a.ph=!a.ph;if(a.ph)a.path=[[DIN[Math.floor(Math.random()*4)]+26+rr(-10,10),30]];else a.path=[[rr(18,248),rr(48,88)]]}
+ else if(d==='pick'){const ai2=Math.floor(Math.random()*5),x2=rr(14,250);if(ai2===a.ai)a.path=[[x2,AY[ai2]]];
+  else{let best=CXS[0],bs=1e9;for(const c of CXS){const sc=Math.abs(c-a.x)+Math.abs(c-x2);if(sc<bs){bs=sc;best=c}}a.path=[[best,AY[a.ai]],[best,AY[ai2]],[x2,AY[ai2]]]}a.ai=ai2}
+ else if(d==='pack'){if(a.si>=0&&a.si<ST.length){const s=ST[a.si];a.path=[[s.x+rr(-3,3),s.y+12]]}else a.path=[[rr(20,280),Math.random()<.5?C1+13:rr(300,312)]]}
+ else{a.ph=!a.ph;if(a.ph)a.path=[[rr(110,345),377]];else a.path=[[DOUT[Math.floor(Math.random()*5)]+19+rr(-6,6),444]]}}
+function arrive(a){if(a.d==='inb'||a.d==='ship')a.carry=a.ph?1:0;else if(a.d==='pick')a.carry=Math.random()<.5?1:0;
+ a.w=a.d==='pack'?rr(1.2,3):rr(.3,1.1)}
+function moveAg(a,s,v){if(a.w>0){a.w-=s*v;return}if(!a.path.length){newTarget(a);return}
+ const p=a.path[0],dx=p[0]-a.x,dy=p[1]-a.y,dd=Math.hypot(dx,dy),st=(a.k==='tr'?20:26)*v*s;
+ if(dd<=st){a.x=p[0];a.y=p[1];a.path.shift();if(!a.path.length)arrive(a)}else{a.x+=dx/dd*st;a.y+=dy/dd*st}}
+function moveRb(r,s,v){if(r.br)return;if(r.w>0){r.w-=s*v;return}
+ if(!r.path.length){const gx=270+12*Math.floor(rr(0,7)),gy=112+12*Math.floor(rr(0,12));r.path=[[gx,r.y],[gx,gy]];return}
+ const p=r.path[0],dx=p[0]-r.x,dy=p[1]-r.y,dd=Math.hypot(dx,dy),st=34*v*s;
+ if(dd<=st){r.x=p[0];r.y=p[1];r.path.shift();if(!r.path.length){r.w=rr(.2,.9);r.pod=!r.pod}}else{r.x+=dx/dd*st;r.y+=dy/dd*st}}
+
+function rrect(x,y,w,h,r){cx.beginPath();cx.moveTo(x+r,y);cx.arcTo(x+w,y,x+w,y+h,r);cx.arcTo(x+w,y+h,x,y+h,r);cx.arcTo(x,y+h,x,y,r);cx.arcTo(x,y,x+w,y,r);cx.closePath()}
+function tape(y){cx.save();cx.strokeStyle='rgba(255,214,10,.35)';cx.lineWidth=1.2;cx.setLineDash([6,5]);cx.beginPath();cx.moveTo(4,y);cx.lineTo(LW-4,y);cx.stroke();cx.restore()}
+function belt(y,dir){cx.fillStyle='#1d222c';cx.fillRect(0,y-5,LW,10);cx.fillStyle='#2a303c';cx.fillRect(0,y-5,LW,1.5);cx.fillRect(0,y+3.5,LW,1.5);
+ cx.fillStyle='rgba(255,255,255,.06)';const off=(clockA*30*dir)%12;for(let x=-12+off;x<LW+12;x+=12)cx.fillRect(x,y-3,2,6)}
+function tag(x,y,txt,col,bg){cx.font='800 8.5px '+getComputedStyle(document.body).fontFamily;const w=cx.measureText(txt).width+10;rrect(x,y,w,13,6.5);cx.fillStyle=bg||'rgba(0,0,0,.6)';cx.fill();
+ cx.fillStyle=col||'#fff';cx.textBaseline='middle';cx.fillText(txt,x+5,y+7);return w}
+let FF='sans-serif';
+function hoursQ(d){const q=d==='pick'?qsum(G.q.w):d==='pack'?qsum(G.q.p):qsum(G.q.k);const c=cap(d);return c>0?q/c:q>0?99:0}
+function bottleneck(){if(!isOp(G.hour))return null;let b=null,bv=2.5;for(const d of['pick','pack','ship']){const h=hoursQ(d);if(h>bv){bv=h;b=d}}
+ if(!b&&G.stock<G.dayBase*.25&&G.dock>500)b='inb';return b}
+function person(a,t){const y=a.y+(a.d==='pack'&&!a.path.length?Math.sin(t*4+a.bob)*.6:0);cx.globalAlpha=a.al;
+ if(a.carry){cx.fillStyle='#c8955a';cx.fillRect(a.x+2.5,y-6.5,5,5)}
+ cx.beginPath();cx.arc(a.x,y,3.7,0,7);cx.fillStyle=KC[a.k];cx.fill();cx.lineWidth=1;cx.strokeStyle='rgba(0,0,0,.55)';cx.stroke();
+ cx.beginPath();cx.arc(a.x,y,1.7,0,7);cx.fillStyle=a.k==='tr'?'#6b7280':'#3b2a1e';cx.fill();cx.globalAlpha=1}
+function led(x,y,ok,t){cx.beginPath();cx.arc(x,y,1.8,0,7);cx.fillStyle=ok?(Math.sin(t*6+x)>-0.6?'#30d158':'#1a5c2c'):(Math.sin(t*10)>0?'#ff453a':'#5c1a1a');cx.fill()}
+
+function drawFloor(dt){if(!G||tab!=='floor'||document.hidden)return;sizeCv();
+ const s=dt/1000,run=running(),op=isOp(G.hour),a=abs(),out=G.outage>a&&!G.up.gen,hps=run?(S.ffClosed&&!op?Math.max(speed*4,8):speed):0;
+ const v=run?Math.min(2.4,.9+speed*.38):0,t=performance.now()/1000;clockA+=s*v;
+ syncT-=dt;if(syncT<=0){syncT=300;sync()}
+ cx.setTransform(cvK,0,0,cvK,0,0);FF=getComputedStyle(document.body).fontFamily;
+ /* floor */
+ cx.fillStyle='#0d1016';cx.fillRect(0,0,LW,LH);
+ for(const d of DEPTS){const[z0,z1]=ZN[d];cx.fillStyle=d==='pick'||d==='ship'?'#10141b':'#0f1219';cx.fillRect(0,z0,LW,z1-z0)}
+ cx.strokeStyle='rgba(255,255,255,.025)';cx.lineWidth=1;for(let x=0;x<LW;x+=24){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,LH);cx.stroke()}
+ tape(98);tape(253);tape(268);tape(354);tape(368);
+ /* ---- inbound ---- */
+ cx.fillStyle='#1a1e27';cx.fillRect(0,0,LW,24);
+ const dcap=LV[G.lv].dock*(G.up.yard?2:1),tk=G.dock>50?clamp(Math.ceil(G.dock/dcap*4),1,4):0;
+ let onN=inT.filter(x=>x.on).length;
+ if(onN<tk){const f=inT.map((x,i)=>i).filter(i=>!inT[i].on);if(f.length){const i=f[Math.floor(Math.random()*f.length)];inT[i].on=1;inT[i].y=-30}}
+ else if(onN>tk){const f=inT.map((x,i)=>i).filter(i=>inT[i].on);const i=f[Math.floor(Math.random()*f.length)];inT[i].on=0}
+ DIN.forEach((x0,i)=>{const T=inT[i];T.y+=((T.on?0:-30)-T.y)*Math.min(1,s*(v?2.5:0));
+  cx.fillStyle='#0a0c10';cx.fillRect(x0,0,52,24);
+  if(T.y>-29){const y=T.y;cx.fillStyle='#d8dde6';rrect(x0+4,y-6,44,28,3);cx.fill();cx.fillStyle='#ff9900';cx.fillRect(x0+4,y+14,44,3);
+   cx.fillStyle='rgba(0,0,0,.25)';for(let k=0;k<4;k++)cx.fillRect(x0+9+k*10,y-4,1,18)}
+  cx.fillStyle='#ffd60a';cx.fillRect(x0,22,52,2)});
+ /* inbound machines */
+ const mi=G.D.inb.m,miu=machUp('inb');for(let i=0;i<Math.min(mi,6);i++){const x=264+(i%2)*46,y=34+Math.floor(i/2)*20;
+  cx.fillStyle='#252b37';rrect(x,y,42,13,3);cx.fill();cx.fillStyle='rgba(255,255,255,.07)';const off=(clockA*24)%8;
+  if(i<miu&&op&&!out)for(let k=off;k<38;k+=8)cx.fillRect(x+2+k,y+3,2,7);led(x+38,y+3.5,i<miu,t)}
+ if(mi>6)tag(300,95-14,'+'+(mi-6),'#ffc15e');
+ /* staging pallets ~ dock level */
+ const pal=Math.min(18,Math.round(G.dock/dcap*24));for(let i=0;i<pal;i++){const x=22+(i%9)*24,y=72+Math.floor(i/9)*12;cx.fillStyle='#6b4a2a';cx.fillRect(x,y,14,9);cx.fillStyle='#c8955a';cx.fillRect(x+1,y+1,12,6)}
+ /* ---- pick: racks ---- */
+ const sf=G.stock/storeCap();
+ for(const y of RY){cx.fillStyle='#262c38';cx.fillRect(12,y-1,112,14);cx.fillRect(136,y-1,116,14)}
+ for(const c of CELLS)if(c.h<sf){cx.fillStyle=c.c;cx.fillRect(c.x+1,c.y+1,7,10)}
+ /* robot field */
+ cx.fillStyle='#0b0e13';cx.fillRect(262,104,LW-264,146);cx.fillStyle='rgba(255,255,255,.09)';
+ for(let i=0;i<7;i++)for(let j=0;j<12;j++)cx.fillRect(270+12*i-1,112+12*j-1,2,2);
+ if(!RB.length){cx.font='700 8px '+FF;cx.fillStyle='rgba(255,255,255,.25)';cx.textAlign='center';cx.fillText('ROBOT FIELD',306,172);cx.fillText('empty',306,183);cx.textAlign='left'}
+ /* ---- conveyors + totes ---- */
+ belt(C1,1);belt(C2,-1);
+ const op2=op&&!out;
+ if(run&&op2){sp1+=s*Math.min(9,G.flow.pick/140)*Math.min(hps,3);sp2+=s*Math.min(9,G.flow.pack/140)*Math.min(hps,3)}
+ while(sp1>=1){sp1--;T1.push({x:-6})}while(sp2>=1){sp2--;T2.push({x:LW+6})}
+ const tv=46*v;T1.forEach(o=>o.x+=tv*s);T2.forEach(o=>o.x-=tv*s);T1=T1.filter(o=>o.x<LW+8);T2=T2.filter(o=>o.x>-8);
+ cx.fillStyle='#ffd60a';T1.forEach(o=>{cx.fillRect(o.x-4,C1-3.5,8,7)});cx.fillStyle='#c8955a';T2.forEach(o=>{cx.fillRect(o.x-4,C2-3.5,8,7);cx.fillStyle='rgba(0,0,0,.3)';cx.fillRect(o.x-.5,C2-3.5,1,7);cx.fillStyle='#c8955a'});
+ /* ---- pack stations ---- */
+ for(const st of ST){cx.fillStyle='#2b3241';rrect(st.x-9,st.y,18,9,2);cx.fill();cx.fillStyle='#3b455a';cx.fillRect(st.x-7,st.y+2,6,5)}
+ const mk=G.D.pack.m,mku=machUp('pack');for(let i=0;i<Math.min(mk,6);i++){const x=298+(i%2)*28,y=280+Math.floor(i/2)*23;
+  cx.fillStyle='#2a3142';rrect(x,y,25,19,4);cx.fill();cx.fillStyle='#394357';cx.fillRect(x+3,y+3,19,8);
+  if(i<mku&&op2){cx.fillStyle='#c8955a';const p=(clockA*1.5+i*.3)%1;cx.fillRect(x+4+p*13,y+13,5,4)}led(x+21,y+15,i<mku,t)}
+ if(mk>6)tag(326,340,'+'+(mk-6),'#ffc15e');
+ /* ---- ship ---- */
+ const ms=G.D.ship.m,msu=machUp('ship');
+ for(let i=0;i<Math.min(ms,6);i++){const y=384+i*11;cx.fillStyle='#202633';cx.fillRect(10,y,90,8);
+  if(i<msu&&op2){cx.fillStyle='rgba(255,193,94,.55)';const off=(clockA*40)%14;for(let k=off;k<86;k+=14){cx.beginPath();cx.moveTo(12+k,y+1);cx.lineTo(16+k,y+4);cx.lineTo(12+k,y+7);cx.fill()}}led(96,y+4,i<msu,t)}
+ if(!ms){cx.font='700 8px '+FF;cx.fillStyle='rgba(255,255,255,.22)';cx.textAlign='center';cx.fillText('SORTER BAY',55,412);cx.fillText('empty',55,423);cx.textAlign='left'}
+ if(ms>6)tag(60,452,'+'+(ms-6),'#ffc15e');
+ const shipRate=run&&op2?G.flow.ship/5/380:0;
+ DOUT.forEach((x0,i)=>{const T=outT[i];
+  if(T.st===0){T.f+=s*hps*shipRate*(.8+.4*((i*37)%10)/10);if(T.f>=1){T.f=1;T.st=1}}
+  else if(T.st===1){T.y+=s*40*v;if(T.y>30){T.st=2;T.f=0;T.y=30}}
+  else{T.y-=s*30*v;if(T.y<=0){T.y=0;T.st=0}}
+  cx.fillStyle='#0a0c10';cx.fillRect(x0,448,40,22);
+  const y=450+T.y;cx.fillStyle='#d8dde6';rrect(x0+3,y,34,30,3);cx.fill();cx.fillStyle='#ff9900';cx.fillRect(x0+3,y+2,34,2.5);
+  cx.fillStyle='rgba(0,0,0,.35)';cx.fillRect(x0+7,y+8,26,6);cx.fillStyle=T.f>.85?'#30d158':'#ffc15e';cx.fillRect(x0+7,y+8,26*T.f,6);
+  cx.fillStyle='#ffd60a';cx.fillRect(x0,446,40,2)});
+ /* ---- agents + robots ---- */
+ AG=AG.filter(x=>!(x.gone&&x.al<=0));
+ for(const ag of AG){ag.al=ag.gone?ag.al-s*3:Math.min(1,ag.al+s*2.5);const down=G.down[ag.d]>a;if(op2&&!down&&v)moveAg(ag,s,v)}
+ for(const r of RB)if(op2&&v)moveRb(r,s,v);
+ if(op&&!out){for(const ag of AG)person(ag,t);
+  for(const r of RB){if(r.pod&&!r.br){cx.fillStyle=r.c;cx.globalAlpha=.85;cx.fillRect(r.x-5,r.y-5,10,10);cx.globalAlpha=1}
+   cx.fillStyle=r.br?(Math.sin(t*10)>0?'#ff453a':'#7a1f1a'):'#ff6b00';rrect(r.x-3.5,r.y-3.5,7,7,2);cx.fill();cx.fillStyle='rgba(0,0,0,.35)';cx.fillRect(r.x-1.5,r.y-1.5,3,3)}}
+ /* ---- area labels ---- */
+ const bn=bottleneck();const LY={inb:27,pick:101,pack:271,ship:371};
+ for(const d of DEPTS){const hd=heads(d),fl=G.flow[d];let x=5+tag(5,LY[d],DN[d].toUpperCase()+'  '+fk(fl)+'/h',fl>0?'#ffc15e':'rgba(255,255,255,.6)');
+  x+=3;tag(x,LY[d],hd+' people','rgba(255,255,255,.75)');
+  if(bn===d)tag(LW-78,LY[d],'BOTTLENECK',Math.sin(t*5)>0?'#fff':'#ffd0cc','rgba(255,69,58,.85)');
+  if(G.down[d]>a){const[z0,z1]=ZN[d];cx.save();cx.globalAlpha=.26;cx.fillStyle='#ff453a';cx.fillRect(0,z0,LW,z1-z0);cx.globalAlpha=.18;cx.fillStyle='#000';
+   for(let k=-40;k<LW+40;k+=18){cx.beginPath();cx.moveTo(k,z1);cx.lineTo(k+9,z1);cx.lineTo(k+9+(z1-z0)*.5,z0);cx.lineTo(k+(z1-z0)*.5,z0);cx.fill()}cx.restore();
+   const hl=Math.max(1,Math.ceil(G.down[d]-a));cx.font='900 13px '+FF;cx.textAlign='center';cx.fillStyle='#fff';cx.fillText('STOPPED: SAFETY INCIDENT',LW/2,(z0+z1)/2);
+   cx.font='700 10px '+FF;cx.fillText('Restarts in '+hl+'h',LW/2,(z0+z1)/2+14);cx.textAlign='left'}}
+ const qp=qsum(G.q.p),qk=qsum(G.q.k);
+ if(qp>50)tag(LW-tagW('TO PACK '+fk(qp))-4,C1-6.5,'TO PACK '+fk(qp),'#111','rgba(255,214,10,.9)');
+ if(qk>50)tag(4,C2-6.5,'TO SHIP '+fk(qk),'#111','rgba(200,149,90,.95)');
+ /* ---- lighting overlays ---- */
+ if(G.heat){tag(LW-tagW('HEATWAVE')-4,4,'HEATWAVE','#fff','rgba(255,90,40,.85)')}
+ if(out){cx.fillStyle='rgba(0,0,0,.78)';cx.fillRect(0,0,LW,LH);center('Power outage','The floor is dark. Waiting for power to return')}
+ else if(!op){cx.fillStyle='rgba(4,6,12,.66)';cx.fillRect(0,0,LW,LH);const nx=nextOpen();center('Floor closed','Next shift starts at 06:00'+(nx>0?' · in '+nx+'h':''))}
+ else if(isNight(G.hour)){cx.fillStyle='rgba(20,30,90,.17)';cx.fillRect(0,0,LW,LH);tag(LW-62,LY.pack,'NIGHT SHIFT','#cfe0ff','rgba(30,50,120,.8)')}
+ if(speed===0&&G&&!G.over){cx.fillStyle='rgba(0,0,0,.25)';cx.fillRect(0,0,LW,LH);tag(LW/2-24,LH/2-40,'PAUSED','#111','rgba(255,193,94,.95)')}}
+function tagW(txt){cx.font='800 8.5px '+FF;return cx.measureText(txt).width+10}
+function center(a,b){cx.textAlign='center';cx.fillStyle='#fff';cx.font='900 20px '+FF;cx.fillText(a,LW/2,LH/2-8);cx.font='600 11px '+FF;cx.fillStyle='rgba(255,255,255,.7)';cx.fillText(b,LW/2,LH/2+12);cx.textAlign='left'}
+function nextOpen(){for(let i=1;i<=24;i++){if(isOp((G.hour+i)%24))return i}return 0}
+cv.addEventListener('click',e=>{if(!G)return;const r=cv.getBoundingClientRect(),y=(e.clientY-r.top)/r.height*LH;
+ const d=y<98?'inb':y<258?'pick':y<362?'pack':'ship';openDept(d)});
+
+/* ================= PLANNING HELPERS ================= */
+function fcast(off){const day=G.day+off,dt=dateOf(day);return G.base*(1+day*.0012)*season(dt)[0]*DOWM[dt.getDay()]*(.7+G.rep/100*.6)*LV[G.lv].dem*(G.flags.contract?1.12:1)}
+function capFull(d){const sv=G.down[d];G.down[d]=0;const c=capDay(d);G.down[d]=sv;return c}
+function marg(d){const c0=capFull(d);G.D[d].n++;const c1=capFull(d);G.D[d].n--;return Math.max(1,c1-c0)}
+function needOf(d){const mx=Math.max(G.dayBase,fcast(1),fcast(2));if(d==='inb')return G.inbDaily;
+ const q=d==='pick'?qsum(G.q.w):d==='pack'?qsum(G.q.p):qsum(G.q.k);return mx+q/2}
+function hiresFor(d,need){return Math.max(1,Math.ceil((need-capFull(d))/marg(d)))}
+function dockCap(){return LV[G.lv].dock*(G.up.yard?2:1)}
+const SIC={'Black Friday':'🛍️','Prime Day':'⚡','Prime Day soon':'⏳','Christmas Day':'🎄','Boxing Day':'🎁','Peak':'🔥','Last-minute gifts':'🎅','Pre-peak':'📈','January slump':'❄️','EOFY sales':'🧾'};
+const SDESC={'Black Friday':'The biggest 4 days of the year','Prime Day':'Members-only deals, huge spike','Prime Day soon':'Orders creeping up before Prime Day','Christmas Day':'Very quiet, most people are at home',
+ 'Boxing Day':'Sales rush after Christmas','Peak':'Holiday shopping is in full swing','Last-minute gifts':'Final rush before Christmas','Pre-peak':'Volumes rising toward peak','January slump':'Quiet after the holidays','EOFY sales':'End of financial year deals'};
+function upcoming(n=6){const out=[];let prev=season(dateOf(G.day))[1];for(let i=1;i<=380&&out.length<n;i++){const dt=dateOf(G.day+i),s=season(dt);if(s[1]!==prev&&s[1])out.push({i,dt,l:s[1],m:s[0]});prev=s[1]}return out}
+function oldest(){return G.q.w.length?abs()-G.q.w[0][0]:0}
+function wagesHour(){return DEPTS.reduce((a,d)=>{const x=G.D[d];return a+(x.n+trainees(d))*G.wage+x.t*(G.wage-2)},0)}
+function tips(){const T=[];
+ for(const d of['pick','pack','ship']){const need=needOf(d),c=capFull(d);
+  if(c<need*.97)T.push(['🧱','<b>'+DN[d]+' is short.</b> It can do '+fk(c)+' a day but you need about '+fk(need)+'. Hire '+hiresFor(d,need)+' more'+(peakTime()?' or bring in temps':'')+'.',d])}
+ const mx=Math.max(G.dayBase,1);
+ if(capFull('inb')<G.inbDaily*.95&&G.stock<mx*2.2)T.push(['🚛','<b>Inbound is falling behind.</b> Stock only covers '+(G.stock/mx).toFixed(1)+' days of orders. Add about '+hiresFor('inb',G.inbDaily)+' people to Inbound.','inb']);
+ if(G.td.turned>0||G.dock>=dockCap()*.95)T.push(['🅿️','<b>Trucks are being turned away.</b> The yard is full. Unload faster or buy the truck yard expansion.']);
+ if(G.stock>storeCap()*.92)T.push(['📦','<b>Storage is almost full.</b> Inbound will stall. The storage mezzanine or a bigger building gives more room.']);
+ if(oldest()>20&&G.sched!=='247')T.push(['⏰','<b>Orders have waited '+oldest()+' hours.</b> A second shift or extra time on the Team tab gives you more hours.']);
+ const today=season(dateOf(G.day))[0];for(let i=1;i<=14;i++){const s=season(dateOf(G.day+i));if(s[0]>=1.8&&s[0]>today+.3){T.push(['📅','<b>'+s[1]+' in '+i+' day'+(i>1?'s':'')+'</b> (orders ×'+s[0]+'). New hires train for '+(G.up.acad?1:2)+' days, so hire before it starts.']);break}}
+ if(G.morale<55)T.push(['😟','<b>Morale is low ('+Math.round(G.morale)+'%).</b> People work slower and quit more. Try a pizza party, a pay rise, or turn off extra time.']);
+ if(G.debt>0)T.push(['🏦','<b>You are over $250k in debt.</b> Corporate closes the site in '+(5-G.debt)+' days unless cash recovers.']);
+ else if(G.cash<25000)T.push(['💸','<b>Cash is tight.</b> Avoid big purchases and keep orders on time so revenue keeps coming.']);
+ if(!T.length){const slack=['pick','pack','ship'].every(d=>capFull(d)>needOf(d)*1.9);
+  if(slack&&!peakTime())T.push(['💤','<b>You have far more people than work.</b> Fewer temps or a shorter schedule would save wages.']);
+  else T.push(['✅','<b>The floor is running smoothly.</b> Every area can keep up with the orders coming in.'])}
+ return T.slice(0,3)}
+
+/* ================= FLOOR INFO ================= */
+R.floor=()=>{if(!G)return;const dt=dateOf(G.day),sz=season(dt),up=upcoming(1)[0];
+ const el=$('season');el.className=sz[0]>=2?'hot':sz[0]>=1.2?'warm':sz[0]<.9?'cool':'';
+ el.innerHTML='<span class="ic">'+(SIC[sz[1]]||'📦')+'</span><div><b>'+(sz[1]||'Normal trading')+'</b><small>'+(sz[1]?SDESC[sz[1]]:'Regular order volumes')+(up?' · '+up.l+' in '+up.i+'d':'')+'</small></div><span class="mx '+(sz[0]>=2?'r':sz[0]>=1.2?'o':'')+'">×'+(+sz[0].toFixed(1))+'</span>';
+ const op=isOp(G.hour);
+ const rows=DEPTS.map(d=>{const c=cap(d),f=G.flow[d],u=c>0?f/c:0,down=G.down[d]>abs();
+  const q=d==='inb'?'Trucks waiting: '+fk(G.dock)+' units · Stock '+fk(G.stock)+' / '+fk(storeCap()):d==='pick'?fk(qsum(G.q.w))+' orders waiting'+(G.q.w.length?' · oldest '+oldest()+'h':''):d==='pack'?fk(qsum(G.q.p))+' totes waiting':fk(qsum(G.q.k))+' parcels waiting';
+  return '<div class="pl" data-act="dept" data-d="'+d+'"><span class="e">'+DI[d]+'</span><b>'+DN[d]+' <span class="mut" style="font-weight:600;font-size:12.5px">· '+heads(d)+' people'+(G.D[d].m?' · '+G.D[d].m+(G.D[d].m===1?' machine':' machines'):'')+'</span></b>'+
+  '<span class="v">'+(down?'<span class="r">Stopped</span>':!op?'Closed':fk(f)+'/h of '+fk(c))+'</span><div class="bar"><i class="'+(u>.97?'rd':u>.75?'':'gr')+'" style="width:'+Math.round(u*100)+'%"></i></div><div class="q">'+q+'</div></div>'}).join('');
+ const td=G.td,sh=td.on+td.late,rev=td.on*ON_REV+td.late*LATE_REV,pr=rev-td.wage-td.other;
+ $('flInfo').innerHTML=
+ '<div class="card"><h3>Floor manager<span>Tips update live</span></h3>'+tips().map(t=>'<div class="tip"'+(t[2]?' data-act="dept" data-d="'+t[2]+'"':'')+'><em>'+t[0]+'</em><div>'+t[1]+'</div></div>').join('')+'</div>'+
+ '<div class="card"><h3>Order flow<span>Tap an area to manage it</span></h3>'+rows+'</div>'+
+ '<div class="card"><h3>Today so far<span>'+dstr(dt)+'</span></h3><div class="g4">'+
+  '<div class="mini"><i>Orders in</i><b>'+fk(td.inO)+'</b></div><div class="mini"><i>Shipped</i><b>'+fk(sh)+'</b></div>'+
+  '<div class="mini"><i>On time</i><b class="'+(todayOt()<.9?'r':'')+'">'+(sh?(td.on/sh*100).toFixed(1)+'%':'-')+'</b></div><div class="mini"><i>Profit</i><b class="'+(pr<0?'r':'g')+'">'+fm(pr)+'</b></div></div></div>'+
+ '<div class="card"><h3>Site news</h3>'+(G.news.length?G.news.slice(0,8).map(n=>'<div class="news '+(n.k||'')+'"><time>'+dstr(dateOf(n.d)).slice(4)+'<br>'+hh(n.h)+'</time><div>'+esc(n.m)+'</div></div>').join(''):'<div class="news">Nothing yet. Press 1× to start the clock.</div>')+'</div>'};
+
+/* ================= TEAM ================= */
+function deptCard(d,inSheet){const x=G.D[d],tr=trainees(d),c=capFull(d),need=needOf(d),ok=c>=need*.97,lv=LV[G.lv];
+ const full=headsAll()>=lv.cap;
+ return '<div class="card dc"><div class="top"><div class="e">'+DI[d]+'</div><div><b>'+DN[d]+'</b><small>'+RATE[d]+' per person an hour · '+heads(d)+' people</small></div><span class="pill '+(ok?'g':'r')+'">'+(ok?'Keeping up':'Short '+hiresFor(d,need))+'</span></div>'+
+ '<div class="need"><span>Capacity '+fk(c)+'/day</span><span>'+(d==='inb'?'Planned inbound ':'Needed ')+fk(need)+'</span></div><div class="bar"><i class="'+(ok?'gr':'rd')+'" style="width:'+Math.min(100,Math.round(c/Math.max(need,1)*100))+'%"></i></div>'+
+ '<div class="hr" style="margin-top:10px"><div class="l"><b>Associates: '+x.n+(tr?' <span class="mut">+'+tr+' training</span>':'')+'</b><small>Hire $300 · let go $500 · '+(G.up.acad?'1 day':'2 days')+' training</small></div>'+
+  '<button class="mb d" data-act="fire" data-d="'+d+'" '+(x.n+tr?'':'disabled')+'>−1</button><button class="mb" data-act="hire" data-d="'+d+'" data-n="1" '+(full?'disabled':'')+'>+1</button><button class="mb p" data-act="hire" data-d="'+d+'" data-n="5" '+(full?'disabled':'')+'>+5</button></div>'+
+ (peakTime()?'<div class="hr"><div class="l"><b>Temps: '+x.t+'</b><small>$120 agency fee · 85% speed · leave 3 Jan</small></div><button class="mb d" data-act="untemp" data-d="'+d+'" '+(x.t?'':'disabled')+'>−5</button><button class="mb t" data-act="temp" data-d="'+d+'" '+(full?'disabled':'')+'>+5</button></div>'
+  :'<div class="hr"><div class="l"><b class="mut">Temps</b><small>Agencies supply temps from October to December</small></div></div>')+
+ (inSheet?'<div class="hr"><div class="l"><b>'+MACH[d].ic+' '+MACH[d].name+': '+x.m+'/'+lv.mach+'</b><small>+'+MACH[d].add+'/h each, needs people to run · '+fm(MACH[d].cost)+'</small></div><button class="mb p" data-act="mach" data-d="'+d+'" '+(x.m>=lv.mach||G.cash<MACH[d].cost?'disabled':'')+'>Buy</button></div>':'')+'</div>'}
+function spark(arr,w=120,h=34){if(arr.length<2)return'';const mn=Math.min(...arr,40),mx=Math.max(...arr,90);const pts=arr.map((v,i)=>(i/(arr.length-1)*w).toFixed(1)+','+(h-(v-mn)/(mx-mn)*h).toFixed(1)).join(' ');
+ return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" style="overflow:visible"><polyline points="'+pts+'" fill="none" stroke="#ffc15e" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>'}
+R.team=()=>{if(!G)return;const lv=LV[G.lv],hc=headsAll(),pc=G.day-G.cool.pizza>=3,bc=G.day-G.cool.bonus>=14,n=hc;
+ $('p-team').innerHTML='<div class="hdr"><div><h1>Team</h1><div class="s">'+hc+' of '+lv.cap+' people · wages '+fm(wagesHour())+'/h</div></div></div>'+
+ '<div class="card lux"><h3>Morale<span>'+(G.morale>=70?'Happy floor':G.morale>=50?'Okay':G.morale>=35?'Unhappy':'Close to walking out')+'</span></h3>'+
+  '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px"><b style="font-size:40px;font-weight:900;line-height:1" class="'+(G.morale<45?'r':G.morale>=70?'g':'')+'">'+Math.round(G.morale)+'%</b>'+spark(G.mHist.length?G.mHist:[G.morale,G.morale])+'</div>'+
+  '<div style="font-size:12.5px;color:var(--t3);margin:8px 0 12px;line-height:1.4">Morale changes speed by up to 35%. Below 55% people start to quit, and incidents double below 40%.</div>'+
+  '<div class="g4"><button class="btn ghost" style="height:auto;padding:10px 6px;flex-direction:column;gap:2px;font-size:14.5px" data-act="pizza" '+(pc?'':'disabled')+'>🍕 Pizza party<small style="font-size:11.5px;color:var(--t3);font-weight:600">'+(pc?fm(20*n)+' · +6 morale':'Again in '+(3-(G.day-G.cool.pizza))+'d')+'</small></button>'+
+  '<button class="btn ghost" style="height:auto;padding:10px 6px;flex-direction:column;gap:2px;font-size:14.5px" data-act="bonus" '+(bc?'':'disabled')+'>💰 Cash bonus<small style="font-size:11.5px;color:var(--t3);font-weight:600">'+(bc?fm(200*n)+' · +14 morale':'Again in '+(14-(G.day-G.cool.bonus))+'d')+'</small></button></div></div>'+
+ '<div class="card"><h3>Shifts and pay</h3>'+
+  '<div class="seg" style="margin-bottom:12px">'+Object.entries(SCHED).map(([k,v])=>'<button data-act="sched" data-v="'+k+'" class="'+(G.sched===k?'on':'')+'">'+v.name+'<small>'+(k==='day'?'06:00 to 16:00':k==='two'?'06:00 to 02:00':'Never stops')+'</small></button>').join('')+'</div>'+
+  '<div class="set"><div><b>Mandatory extra time</b><small>+2 hours a day. Morale −13, more incidents'+(G.sched==='247'?'. Not needed on 24/7':'')+'</small></div><button class="tgl '+(G.met?'on':'')+'" data-act="met"></button></div>'+
+  '<div class="set"><div><b>Hourly pay</b><small>Each $1 above $30 adds about 3 morale. Nights cost 25% more</small></div><div class="wg"><button class="mb" data-act="wage" data-v="-1">−</button><b>$'+G.wage+'</b><button class="mb" data-act="wage" data-v="1">+</button></div></div>'+
+  '<div class="set"><div><b>Floor hours</b><small>'+opHours()+' hours a day'+(G.sched!=='day'?' · night hours paid ×1.25':'')+'</small></div><span class="pill">'+opHours()+'h</span></div></div>'+
+ DEPTS.map(d=>deptCard(d)).join('')};
+
+/* ================= BUILD ================= */
+R.build=()=>{if(!G)return;const lv=LV[G.lv],nx=LV[G.lv+1];
+ $('p-build').innerHTML='<div class="hdr"><div><h1>Build</h1><div class="s">'+lv.name+' · '+fm(lv.rent)+' rent a day</div></div></div>'+
+ '<div class="card lux"><h3>Building<span>Level '+G.lv+' of 3</span></h3><div class="lvl">'+[1,2,3].map(i=>'<i class="'+(i<=G.lv?'on':'')+'"></i>').join('')+'</div>'+
+  '<div class="kv"><span>People</span><b>'+headsAll()+' / '+lv.cap+'</b></div><div class="kv"><span>Storage</span><b>'+fk(G.stock)+' / '+fk(storeCap())+'</b></div><div class="kv"><span>Machine slots per area</span><b>'+lv.mach+'</b></div><div class="kv"><span>Order volume</span><b>×'+lv.dem+'</b></div>'+
+  (nx?'<div style="font-size:13px;color:var(--t2);margin:10px 0 12px;line-height:1.45"><b class="o">'+nx.name+':</b> room for '+nx.cap+' people, '+fk(nx.store)+' storage, '+nx.mach+' machines per area and ×'+nx.dem+' orders. Rent '+fm(nx.rent)+' a day.</div><button class="btn" data-act="expand" '+(G.cash<nx.cost?'disabled':'')+'>Expand for '+fm(nx.cost)+'</button>'
+   :'<div style="font-size:13.5px;color:var(--a1);margin-top:10px;font-weight:700">You run a Mega FC. This is the top level.</div>')+'</div>'+
+ '<div class="card"><h3>Machines<span>Need people to run them</span></h3>'+DEPTS.map(d=>{const x=G.D[d],br=x.m-machUp(d);
+  return '<div class="up"><div class="e">'+MACH[d].ic+'</div><div class="l"><b>'+MACH[d].name+'</b><small>'+DN[d]+' · +'+MACH[d].add+'/h each · '+x.m+'/'+lv.mach+' installed'+(br?' · <span class="r">'+br+' broken</span>':'')+'</small></div><button class="mb p" data-act="mach" data-d="'+d+'" '+(x.m>=lv.mach||G.cash<MACH[d].cost?'disabled':'')+'>'+(x.m>=lv.mach?'Full':fm(MACH[d].cost))+'</button></div>'}).join('')+
+  '<div style="font-size:12px;color:var(--t3);margin-top:8px;line-height:1.4">Each area can get at most 1.5× its hand output from machines, so keep enough people on the floor. Machines cost $50 an hour to run.</div></div>'+
+ '<div class="card"><h3>Upgrades<span>'+UPS.filter(u=>G.up[u[0]]).length+' of '+UPS.length+' owned</span></h3>'+UPS.map(u=>{const own=G.up[u[0]];
+  return '<div class="up '+(own?'own':'')+'"><div class="e">'+u[4]+'</div><div class="l"><b>'+u[1]+'</b><small>'+u[2]+'</small></div>'+(own?'<span class="pill g">Owned</span>':'<button class="mb p" data-act="up" data-k="'+u[0]+'" '+(G.cash<u[3]?'disabled':'')+'>'+fm(u[3])+'</button>')+'</div>'}).join('')+'</div>'};
+
+/* ================= STATS ================= */
+let stRange=30;
+function chart(id,sets,o={}){const c=$(id);if(!c)return;const r=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;if(!w)return;c.width=w*r;c.height=h*r;const x=c.getContext('2d');x.scale(r,r);
+ const P={l:38,r:6,t:8,b:16};let mn=o.min!=null?o.min:Infinity,mx=o.max!=null?o.max:-Infinity;
+ for(const s of sets)for(const v of s.v){if(o.min==null)mn=Math.min(mn,v);if(o.max==null)mx=Math.max(mx,v)}
+ if(o.zero){mn=Math.min(mn,0);mx=Math.max(mx,0)}if(!isFinite(mn)){mn=0;mx=1}if(mx-mn<1e-6){mx+=1;mn-=1}
+ const pad=(mx-mn)*.08;if(o.max==null)mx+=pad;if(o.min==null&&!o.zero)mn-=pad;
+ const W=w-P.l-P.r,H=h-P.t-P.b,Y=v=>P.t+H-(v-mn)/(mx-mn)*H,n=sets[0].v.length;
+ x.font='600 10px '+FF;x.fillStyle='rgba(255,255,255,.35)';x.strokeStyle='rgba(255,255,255,.07)';x.lineWidth=1;x.textBaseline='middle';
+ for(let i=0;i<=3;i++){const v=mn+(mx-mn)*i/3,y=Y(v);x.beginPath();x.moveTo(P.l,y);x.lineTo(w-P.r,y);x.stroke();x.fillText((o.fmt||fk)(v),2,y)}
+ if(o.guide!=null){x.strokeStyle='rgba(48,209,88,.5)';x.setLineDash([4,4]);x.beginPath();x.moveTo(P.l,Y(o.guide));x.lineTo(w-P.r,Y(o.guide));x.stroke();x.setLineDash([])}
+ if(o.labels){x.textBaseline='alphabetic';x.fillText(o.labels[0],P.l,h-2);const l=o.labels[o.labels.length-1];x.fillText(l,w-P.r-x.measureText(l).width,h-2)}
+ for(const s of sets){if(s.type==='bar'){const bw=W/n;s.v.forEach((v,i)=>{x.fillStyle=v>=0?'#30d158':'#ff453a';const y0=Y(0),y1=Y(v);x.fillRect(P.l+i*bw+bw*.15,Math.min(y0,y1),Math.max(1,bw*.7),Math.max(1,Math.abs(y1-y0)))})}
+  else{const X=i=>P.l+(n<=1?W/2:i*W/(n-1));x.strokeStyle=s.col;x.lineWidth=2;x.lineJoin='round';x.beginPath();s.v.forEach((v,i)=>i?x.lineTo(X(i),Y(v)):x.moveTo(X(i),Y(v)));x.stroke();
+   if(s.fill){x.lineTo(X(n-1),Y(mn));x.lineTo(X(0),Y(mn));x.closePath();const g=x.createLinearGradient(0,P.t,0,P.t+H);g.addColorStop(0,s.fill);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fill()}
+   if(n===1){x.fillStyle=s.col;x.beginPath();x.arc(X(0),Y(s.v[0]),3,0,7);x.fill()}}}}
+R.stats=()=>{if(!G)return;const H=stRange?G.hist.slice(-stRange):G.hist,T=G.tot,done=T.on+T.late+T.canc;
+ const L=H.length?[dstr(dateOf(H[0].d)).slice(4),dstr(dateOf(H[H.length-1].d)).slice(4)]:null;
+ $('p-stats').innerHTML='<div class="hdr"><div><h1>Stats</h1><div class="s">Day '+(G.day+1)+' · '+dstr(dateOf(G.day),true)+'</div></div></div>'+
+ '<div class="seg" style="margin-bottom:12px">'+[[14,'14 days'],[30,'30 days'],[0,'All time']].map(r=>'<button data-act="range" data-v="'+r[0]+'" class="'+(stRange===r[0]?'on':'')+'">'+r[1]+'</button>').join('')+'</div>'+
+ (H.length?'<div class="card"><h3>Orders a day</h3><canvas class="ch" id="ch1"></canvas><div class="lg"><span><i style="background:#0a84ff"></i>Came in</span><span><i style="background:#ffc15e"></i>Shipped</span></div></div>'+
+ '<div class="card"><h3>On time<span>Goal 95%</span></h3><canvas class="ch" id="ch2"></canvas></div>'+
+ '<div class="card"><h3>Profit a day</h3><canvas class="ch" id="ch3"></canvas></div>'+
+ '<div class="card"><h3>Cash in the bank</h3><canvas class="ch" id="ch4"></canvas></div>'+
+ '<div class="card"><h3>Morale and reputation</h3><canvas class="ch" id="ch5"></canvas><div class="lg"><span><i style="background:#2dd4bf"></i>Morale</span><span><i style="background:#ff8a00"></i>Reputation</span></div></div>'
+ :'<div class="card"><div class="tip"><em>📊</em><div>Charts appear after your first full day. Start the clock with 1×.</div></div></div>')+
+ '<div class="card"><h3>All time</h3><div class="kv"><span>Orders shipped</span><b>'+fn(T.ship)+'</b></div><div class="kv"><span>On time</span><b>'+(done?(T.on/done*100).toFixed(1)+'%':'-')+'</b></div>'+
+ '<div class="kv"><span>Cancelled (waited over 72h)</span><b>'+fn(T.canc)+'</b></div><div class="kv"><span>Total profit</span><b class="'+(T.profit<0?'r':'g')+'">'+fmF(T.profit)+'</b></div>'+
+ '<div class="kv"><span>People hired</span><b>'+fn(T.hired)+'</b></div><div class="kv"><span>Safety incidents</span><b>'+T.inc+'</b></div><div class="kv"><span>Days open</span><b>'+G.day+'</b></div></div>';
+ if(H.length)requestAnimationFrame(()=>{chart('ch1',[{v:H.map(h=>h.inO),col:'#0a84ff'},{v:H.map(h=>h.ship),col:'#ffc15e',fill:'rgba(255,193,94,.18)'}],{zero:true,labels:L});
+  chart('ch2',[{v:H.map(h=>h.ot),col:'#30d158',fill:'rgba(48,209,88,.15)'}],{min:Math.min(50,...H.map(h=>h.ot)),max:100,guide:95,fmt:v=>Math.round(v)+'%',labels:L});
+  chart('ch3',[{v:H.map(h=>h.profit),type:'bar'}],{zero:true,fmt:fm,labels:L});
+  chart('ch4',[{v:H.map(h=>h.cash),col:'#ffc15e',fill:'rgba(255,193,94,.15)'}],{fmt:fm,labels:L});
+  chart('ch5',[{v:H.map(h=>h.mor),col:'#2dd4bf'},{v:H.map(h=>h.rep),col:'#ff8a00'}],{min:0,max:100,fmt:v=>Math.round(v),labels:L})})};
+A.range=el=>{stRange=+el.dataset.v;R.stats();haptic()};
+
+/* ================= GOALS ================= */
+const GIC={first:'📦',hire40:'👷',robot:'🤖',streak:'🔥',bf:'🛍️',peak:'🎄',cash500:'💰',expand:'🏗️',five:'⭐',prime:'⚡',mega:'🏙️',million:'🚀'};
+function gProg(id){const p={first:G.tot.ship/5000,hire40:headsAll()/45,robot:DEPTS.some(d=>G.D[d].m)?1:0,streak:G.streak/7,cash500:G.cash/500000,expand:G.lv>=2?1:0,five:(stars()-1)/3.95,mega:G.lv>=3?1:(G.lv-1)/2,million:G.tot.ship/1e6};
+ return p[id]==null?null:clamp(p[id],0,1)}
+R.goals=()=>{if(!G)return;const cl=GOALS.filter(g=>G.goals[g[0]]==='claimed').length;
+ $('p-goals').innerHTML='<div class="hdr"><div><h1>Goals</h1><div class="s">'+cl+' of '+GOALS.length+' claimed · ★ '+stars().toFixed(1)+' rating</div></div><button class="ibtn" data-act="settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></button></div>'+
+ '<div class="card"><h3>Goals<span>Cash rewards</span></h3>'+GOALS.map(g=>{const st=G.goals[g[0]],p=gProg(g[0]);
+  return '<div class="gl '+(st==='done'?'done':st==='claimed'?'cl':'')+'"><div class="e">'+(st==='claimed'?'✅':GIC[g[0]])+'</div><div class="l"><b>'+g[1]+'</b><small>Reward '+fm(g[3])+'</small>'+(!st&&p!=null?'<div class="bar"><i style="width:'+Math.round(p*100)+'%"></i></div>':'')+'</div>'+
+  (st==='done'?'<button class="mb p" data-act="claim" data-id="'+g[0]+'">Claim</button>':st==='claimed'?'<span class="pill g">Done</span>':'')+'</div>'}).join('')+'</div>'+
+ '<div class="card"><h3>Season calendar<span>Plan your hiring</span></h3>'+upcoming(8).map(u=>'<div class="cal"><div class="d"><b>'+u.dt.getDate()+'</b><small>'+MON[u.dt.getMonth()]+'</small></div><div class="l"><b>'+(SIC[u.l]||'')+' '+u.l+'</b><small>In '+u.i+' day'+(u.i>1?'s':'')+' · orders ×'+u.m+'</small></div></div>').join('')+'</div>'};
+A.claim=el=>{const v=claim(el.dataset.id);if(v){sfx('cash');haptic(2);sparkle(el);confetti(null,null,90);toast('+'+fmF(v)+' reward collected','good')}after()};
+
+/* ================= ACTIONS ================= */
+A.hire=el=>{const d=el.dataset.d,n=+el.dataset.n,room=LV[G.lv].cap-headsAll();const k=Math.min(n,room);if(k<=0){E.toast('Building is full ('+LV[G.lv].cap+' people). Expand to hire more','bad');return}
+ if(hire(d,k)){sfx('buy');haptic();if(k<n)toast('Only room for '+k+' more people')}after()};
+A.fire=el=>{const k=fire(el.dataset.d,1);if(k){sfx('tap');haptic()}after()};
+A.temp=el=>{const d=el.dataset.d,room=LV[G.lv].cap-headsAll(),k=Math.min(5,room);if(k<=0){E.toast('Building is full. Expand to fit more people','bad');return}if(hireTemp(d,k)){sfx('buy');haptic()}after()};
+A.untemp=el=>{dropTemp(el.dataset.d,5);sfx('tap');haptic();after()};
+A.mach=el=>{const d=el.dataset.d;if(buyMach(d)){sfx('buy');haptic(2);sparkle(el);news('Installed a new '+MACH[d].name+' in '+DN[d],'good')}after()};
+A.up=el=>{const k=el.dataset.k;if(buyUp(k)){sfx('buy');haptic(2);sparkle(el);const u=UPS.find(x=>x[0]===k);news('Bought '+u[1],'good');toast(u[4]+' '+u[1]+' installed','good')}after()};
+A.expand=()=>{const nx=LV[G.lv+1];if(!nx)return;
+ modal('<div class="big">🏗️</div><h2>Move to a '+nx.name+'?</h2><p>This costs '+fmF(nx.cost)+'. You keep your team and machines, get more space and slots, and order volume rises to ×'+nx.dem+'. Rent goes up to '+fm(nx.rent)+' a day.</p><button class="btn" id="mY">Expand now</button><button class="btn ghost" id="mN">Not yet</button>',
+ m=>{m.querySelector('#mY').onclick=()=>{closeModal();if(expand()){sfx('goal');haptic(2);confetti();news('Expanded to a '+nx.name+'!','good');toast('🏗️ Welcome to your '+nx.name,'good')}after()};m.querySelector('#mN').onclick=closeModal},{dismiss:true})};
+A.sched=el=>{G.sched=el.dataset.v;if(G.sched==='247')G.met=false;haptic();sfx('tap');after()};
+A.met=()=>{if(G.sched==='247')return;G.met=!G.met;haptic();sfx('tap');after()};
+A.wage=el=>{G.wage=clamp(G.wage+ +el.dataset.v,25,45);haptic();sfx('tap');after()};
+A.pizza=el=>{const c=pizza();G.cool.pizza=G.day;sfx('cash');haptic();sparkle(el);toast('🍕 Pizza for everyone ('+fmF(c)+')','good');news('Pizza party for the whole site','good');after()};
+A.bonus=el=>{const c=bonus();G.cool.bonus=G.day;sfx('cash');haptic(2);confetti(null,null,60);toast('💰 Bonus paid ('+fmF(c)+')','good');news('Cash bonus paid to every associate','good');after()};
+A.dept=el=>openDept(el.dataset.d);
+function openDept(d){haptic();sfx('tap');openSheet(()=>'<div class="sh-t">'+DI[d]+' '+DN[d]+'<span class="pill">'+fk(G.flow[d])+'/h now</span></div>'+deptCard(d,true)+
+ '<div class="card"><h3>What this area does</h3><div style="font-size:13.5px;color:var(--t2);line-height:1.45">'+({inb:'Unloads trucks and puts stock on the shelves. Too slow and pickers run out of stock; trucks pile up in the yard.',
+ pick:'Walks the aisles and picks each order into a tote. Orders waiting here for more than 24 hours ship late; after 72 hours they cancel.',
+ pack:'Boxes up picked items. Totes pile up on the conveyor if packing is too slow.',ship:'Sorts parcels onto trucks. Anything packed but not shipped still counts as waiting.'})[d]+'</div></div>')}
+
+/* ================= SETTINGS ================= */
+A.settings=()=>{if(!G)return;openSheet(Object.assign(()=>'<div class="sh-t">Settings</div>'+
+ '<div class="card"><h3>Site name</h3><input class="inp" id="nmI" maxlength="10" value="'+esc(G.name)+'" autocomplete="off" autocapitalize="characters"></div>'+
+ '<div class="card">'+[['sound','Sound effects','Clicks, cash and alerts'],['haptics','Haptics','Taps on supported iPhones'],['ffClosed','Fast-forward closed hours','Skip quickly through the night when the floor is shut'],['pauseDay','Pause after each day','Stop the clock at midnight to review the day']]
+  .map(r=>'<div class="set"><div><b>'+r[1]+'</b><small>'+r[2]+'</small></div><button class="tgl '+(S[r[0]]?'on':'')+'" data-act="tg" data-k="'+r[0]+'"></button></div>').join('')+'</div>'+
+ '<button class="btn ghost" data-act="tut">How to play</button><button class="btn danger" data-act="restart">Start a new FC</button>'+
+ '<div style="text-align:center;font-size:12px;color:var(--t3);margin-top:16px">FC Tycoon v1.0 · saves on this device</div>',{static:true}));
+ const i=$('nmI');i.oninput=()=>{G.name=(i.value.trim()||'MEL1').toUpperCase().slice(0,10);S.name=G.name;hud();save()}};
+A.tg=el=>{const k=el.dataset.k;S[k]=!S[k];el.classList.toggle('on',S[k]);haptic();save()};
+A.tut=()=>{closeSheet();setTimeout(tutorial,300)};
+A.restart=()=>{closeSheet();modal('<div class="big">🔄</div><h2>Start a new FC?</h2><p>Your current site, cash and progress will be gone for good.</p><button class="btn danger" id="mY">Yes, start over</button><button class="btn ghost" id="mN">Keep playing</button>',
+ m=>{m.querySelector('#mY').onclick=()=>{closeModal();resetGame()};m.querySelector('#mN').onclick=closeModal},{dismiss:true})};
+function resetGame(){G=null;AG=[];RB=[];T1=[];T2=[];setSpeed(0);save();setTimeout(onboard,260)}
+
+/* ================= ENGINE HOOKS ================= */
+let lastReport=null,banT=0;
+E.toast=(m,k)=>{toast(m,k);news(m,k);if(k==='bad'){sfx('bad');haptic()}};
+E.goal=g=>{sfx('goal');haptic(2);toast('🏆 Goal done: '+g[1],'good','Claim',()=>go('goals'));news('Goal complete: '+g[1],'good')};
+E.event=e=>{const sp=e.t.indexOf(' '),ic=e.t.slice(0,sp),ti=e.t.slice(sp+1);sfx('event');haptic(2);
+ modal('<div class="big">'+ic+'</div><h2>'+esc(ti)+'</h2><p>'+esc(e.x)+'</p>'+e.c.map((c,i)=>'<button class="btn '+(i?'ghost':'')+'" data-i="'+i+'">'+esc(c[0])+'</button>').join(''),
+ m=>m.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{const res=e.c[+b.dataset.i][1]();G.morale=clamp(G.morale,0,100);G.rep=clamp(G.rep,0,100);news(ti+': '+res);haptic();sfx('tap');
+  m.innerHTML='<div class="big">'+ic+'</div><h2>'+esc(ti)+'</h2><p>'+esc(res)+'</p><button class="btn" id="mOk">Back to the floor</button>';m.querySelector('#mOk').onclick=()=>{closeModal();after()}}))};
+E.day=r=>{lastReport=r;const b=$('dayBan'),p=r.profit;
+ b.innerHTML='<div class="h"><span>'+dstr(r.date)+' wrapped up</span><span>Tap for report</span></div><div class="b"><div><span>Shipped</span>'+fk(r.ship)+'</div><div><span>On time</span><b class="'+(r.ot<.9?'r':r.ot>=.97?'g':'')+'">'+(r.ot*100).toFixed(1)+'%</b></div><div><span>Profit</span><b class="'+(p<0?'r':'g')+'">'+fm(p)+'</b></div>'+(r.canc>1?'<div><span>Cancelled</span><b class="r">'+fk(r.canc)+'</b></div>':'')+'</div>';
+ b.classList.add('on');clearTimeout(banT);banT=setTimeout(()=>b.classList.remove('on'),speed>=4?2600:3600);
+ if(r.ot<.85)news('Rough day: only '+(r.ot*100).toFixed(1)+'% shipped on time','bad');
+ S.best=Math.max(S.best||0,G.day);save();if(tab==='stats')R.stats();if(S.pauseDay&&!G.over){setSpeed(0)}};
+A.dayReport=()=>{const r=lastReport;if(!r)return;$('dayBan').classList.remove('on');
+ openSheet(Object.assign(()=>'<div class="sh-t">'+dstr(r.date)+'<span class="pill '+(r.season?'o':'')+'">'+(r.season||'Normal day')+'</span></div><div class="card">'+
+ [['Orders came in',fn(r.inO)],['Orders shipped',fn(r.ship)],['Shipped on time','<span class="'+(r.ot<.9?'r':'g')+'">'+(r.ot*100).toFixed(1)+'%</span>'],['Cancelled',fn(r.canc)],['People quit',r.quit],
+  ['Stock shortfalls (orders)',fn(r.stockout)],['Inbound turned away (units)',fn(r.turned)],['Profit','<span class="'+(r.profit<0?'r':'g')+'">'+fmF(r.profit)+'</span>']]
+ .map(k=>'<div class="kv"><span>'+k[0]+'</span><b>'+k[1]+'</b></div>').join('')+'</div><div class="card"><h3>Floor manager</h3>'+tips().map(t=>'<div class="tip"><em>'+t[0]+'</em><div>'+t[1]+'</div></div>').join('')+'</div>',{static:true}))};
+E.year=y=>{const H=G.hist.filter(h=>dateOf(h.d).getFullYear()===y);if(!H.length)return;const sh=H.reduce((a,h)=>a+h.ship,0),pr=H.reduce((a,h)=>a+h.profit,0),best=H.reduce((a,h)=>h.ship>a.ship?h:a,H[0]),ot=H.reduce((a,h)=>a+h.ot,0)/H.length;
+ setTimeout(()=>{confetti();sfx('goal')},300);
+ modal('<div class="big">🎆</div><h2>'+y+' in review</h2><p>Happy New Year from '+esc(G.name)+'! Here is how your site did.</p>'+
+ [['Orders shipped',fn(sh)],['Average on time',ot.toFixed(1)+'%'],['Profit',fmF(pr)],['Busiest day',dstr(dateOf(best.d))+' · '+fk(best.ship)],['Rating','★ '+stars().toFixed(1)]].map(k=>'<div class="kv"><span>'+k[0]+'</span><b>'+k[1]+'</b></div>').join('')+
+ '<button class="btn" id="mOk">On to '+(y+1)+'</button>',m=>m.querySelector('#mOk').onclick=closeModal)};
+E.over=why=>{setTimeout(()=>{setSpeed(0);sfx('over');haptic(3);const T=G.tot;mq.length=0;
+ modal('<div class="big">🏚️</div><h2>Corporate closed '+esc(G.name)+'</h2><p>'+(why==='rep'?'Customers stopped trusting the site. Too many orders arrived late or never came.':'The site ran out of money. You stayed more than $250k in debt for 5 days.')+'</p>'+
+ [['Days open',G.day],['Orders shipped',fn(T.ship)],['Total profit',fmF(T.profit)],['Best run',(S.best||G.day)+' days']].map(k=>'<div class="kv"><span>'+k[0]+'</span><b>'+k[1]+'</b></div>').join('')+
+ '<button class="btn" id="mOk">Open a new FC</button>',m=>m.querySelector('#mOk').onclick=()=>{closeModal();resetGame()});save()},50)};
+
+/* ================= ONBOARDING + TUTORIAL ================= */
+function onboard(){if($('ob'))return;const w=document.createElement('div');w.id='ob';const nm=S.name||'MEL1';
+ w.innerHTML='<img class="logo" src="icon-192.png" alt=""><h1>FC <span class="grad">Tycoon</span></h1><p>Run your own fulfilment centre. Hire a team, buy robots and survive peak season without the building melting down.</p>'+
+ '<label for="obN">Name your site</label><input class="inp" id="obN" maxlength="10" value="'+esc(nm)+'" autocomplete="off" autocapitalize="characters">'+
+ '<div class="chips">'+['MEL1','AVV4','SYD8','BWU2','PER2','BNE1'].map(c=>'<button class="chip '+(c===nm?'on':'')+'" data-c="'+c+'">'+c+'</button>').join('')+'</div>'+
+ '<button class="btn" id="obGo">Open the doors</button>';
+ document.body.appendChild(w);const inp=w.querySelector('#obN');
+ w.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{inp.value=c.dataset.c;w.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));haptic();sfx('tap')});
+ w.querySelector('#obGo').onclick=()=>{const n=(inp.value.trim()||'MEL1').toUpperCase().slice(0,10);S.name=n;newGame();fillG();G.name=n;G.news=[];
+  news('Welcome to '+n+'! Your first shift starts at 06:00','good');save();w.classList.add('out');setTimeout(()=>w.remove(),460);sfx('goal');haptic(2);hud();R.floor();if(tab!=='floor')go('floor');
+  setSpeed(0);setTimeout(()=>{if(!S.tut)tutorial();else setSpeed(1)},350)}}
+const TUT=[
+ ['🏭','Welcome, site leader','Orders come in all day. Your job is to ship each one within 24 hours. Late orders earn half, and after 72 hours they cancel and hurt your rating.'],
+ ['🔁','Every order takes the same path','<span class="flow"><span><em>🚛</em>Inbound</span>›<span><em>🛒</em>Pick</span>›<span><em>📦</em>Pack</span>›<span><em>🚚</em>Ship</span></span>The slowest area is your bottleneck. The floor manager tips tell you where it is.'],
+ ['👷','People and robots','Hire associates (they train for 2 days), add temps from October to December, and buy machines to boost each area. Machines still need people to run them.'],
+ ['📅','Watch the calendar','Peak runs from mid November to Christmas. Black Friday brings 4× the orders and Prime Day hits in July. Hire before the rush, not during it.'],
+ ['😊','Look after your team','Low morale means slower work, more quits and more injuries. Pay, breaks, shifts and extra time all change how people feel.'],
+ ['⏩','You are in charge','Use pause, 1×, 2× and 4× at the top. Tap any area of the floor to manage it. The game saves itself on this phone.']];
+function tutorial(){let i=0;const prev=speed;setSpeed(0);
+ const draw=m=>{const t=TUT[i];m.innerHTML='<div class="big">'+t[0]+'</div><div class="dots">'+TUT.map((x,j)=>'<i class="'+(j===i?'on':'')+'"></i>').join('')+'</div><h2>'+t[1]+'</h2><p>'+t[2]+'</p>'+
+  '<button class="btn" id="tN">'+(i===TUT.length-1?'Start the clock':'Next')+'</button>'+(i?'<button class="btn ghost" id="tB">Back</button>':'<button class="btn ghost" id="tS">Skip</button>');
+  m.querySelector('#tN').onclick=()=>{haptic();sfx('tap');if(i<TUT.length-1){i++;draw(m)}else done()};
+  const b=m.querySelector('#tB');if(b)b.onclick=()=>{i--;draw(m)};const s=m.querySelector('#tS');if(s)s.onclick=done};
+ const done=()=>{S.tut=true;save();closeModal();setTimeout(()=>setSpeed(prev||S.speed||1),260)};
+ modal('',draw)}
+
+/* ================= BOOT ================= */
+window.addEventListener('error',e=>{(window.__e=window.__e||[]).push(String(e.message))});
+load();setSpeed(0);
+requestAnimationFrame(t=>{lastT=t;requestAnimationFrame(loop)});
+if(G){hud();R.floor();setSpeed(S.speed||1)}else onboard();
+addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+</script>
+</body>
+</html>
